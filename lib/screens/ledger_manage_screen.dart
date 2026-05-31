@@ -58,7 +58,7 @@ class _LedgerManageScreenState extends State<LedgerManageScreen> {
       ),
     );
     if (confirmed == true) {
-      provider.deleteLedger(id);
+      await provider.deleteLedger(id);
     }
   }
 

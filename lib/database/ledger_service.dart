@@ -15,9 +15,12 @@ class LedgerService {
 
   Future<void> updateLedger(int id, String name) async {
     final db = await _db.database;
+    final now = DateTime.now();
+    final ts = '${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')} '
+        '${now.hour.toString().padLeft(2,'0')}:${now.minute.toString().padLeft(2,'0')}:${now.second.toString().padLeft(2,'0')}';
     await db.update('ledgers', {
       'name': name,
-      "updated_at": "datetime('now','localtime')",
+      'updated_at': ts,
     }, where: 'id = ?', whereArgs: [id]);
   }
 

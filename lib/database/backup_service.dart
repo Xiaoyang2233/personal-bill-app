@@ -37,7 +37,10 @@ class BackupService {
       data = _xorEncrypt(data, password);
     }
 
-    // Write to database
+    // Close existing database connection before overwriting the file
+    await _db.closeDatabase();
+
+    // Write restored data to database file
     final dbPath = await _db.getDatabasePath();
     await File(dbPath).writeAsBytes(data);
   }

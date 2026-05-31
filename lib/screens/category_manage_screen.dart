@@ -120,8 +120,14 @@ class _CategoryManageScreenState extends State<CategoryManageScreen> {
   }
 
   Future<void> _moveCategory(int oldIndex, int newIndex) async {
-    final result = await _categoryService.moveCategory(_activeTab, oldIndex, newIndex);
-    setState(() => _categories = result);
+    // Update local state first for instant visual feedback
+    final adjustedIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    setState(() {
+      final item = _categories.removeAt(oldIndex);
+      _categories.insert(adjustedIndex, item);
+    });
+    // Persist to DB
+    await _categoryService.saveCategories(_activeTab, _categories);
   }
 
   @override

@@ -155,4 +155,11 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     return join(dbPath, 'finance_app.db');
   }
+
+  Future<void> closeDatabase() async {
+    if (_database != null) {
+      await _database!.close();
+      _database = null;
+    }
+  }
 }

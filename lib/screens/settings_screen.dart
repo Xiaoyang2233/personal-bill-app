@@ -21,13 +21,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     '#1C1C1E', '#263238', '#1B5E20', '#0D47A1',
   ];
 
-  bool _confirmClearBg = false;
-  late double _localOpacity;
+  double _localOpacity = 0.5;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final theme = context.read<ThemeProvider>();
       setState(() => _localOpacity = theme.backgroundOpacity);
     });
@@ -140,9 +140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   }).toList(),
                 ),
               const SizedBox(height: 10),
-              _buildTextButton('重置背景', () {
-                setState(() => _confirmClearBg = true);
-              }, theme),
+              _buildTextButton('重置背景', () => _showClearDialog(theme), theme),
             ],
           ),
         ),
@@ -181,7 +179,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
 
-        if (_confirmClearBg) _showClearDialog(theme),
       ],
     );
   }
@@ -287,33 +284,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _showClearDialog(ThemeProvider theme) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('恢复默认背景'),
-          content: const Text('确定要清除自定义背景，恢复为默认背景吗？'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                setState(() => _confirmClearBg = false);
-              },
-              child: const Text('取消'),
-            ),
-            TextButton(
-              onPressed: () {
-                theme.clearBackground();
-                Navigator.pop(ctx);
-                setState(() => _confirmClearBg = false);
-              },
-              child: const Text('恢复'),
-            ),
-          ],
-        ),
-      );
-    });
-    return const SizedBox.shrink();
+  void _showClearDialog(ThemeProvider theme) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('恢复默认背景'),
+        content: const Text('确定要清除自定义背景，恢复为默认背景吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              theme.clearBackground();
+              Navigator.pop(ctx);
+            },
+            child: const Text('恢复'),
+          ),
+        ],
+      ),
+    );
   }
 }

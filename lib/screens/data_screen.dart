@@ -246,6 +246,14 @@ class _DataScreenState extends State<DataScreen> {
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide(color: theme.borderColor),
                       ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: theme.borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: theme.primaryColor),
+                      ),
                       filled: true,
                       fillColor: theme.inputBgColor,
                     ),

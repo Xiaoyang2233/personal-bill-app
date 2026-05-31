@@ -179,9 +179,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
           TextButton(
-            onPressed: () {
-              context.read<BillProvider>().deleteBill(bill.id!);
-              Navigator.pop(ctx);
+            onPressed: () async {
+              await context.read<BillProvider>().deleteBill(bill.id!);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('删除'),

@@ -86,7 +86,7 @@ class _BillDetailScreenState extends State<BillDetailScreen> {
       ),
     );
     if (confirmed == true) {
-      context.read<BillProvider>().deleteBill(widget.billId);
+      await context.read<BillProvider>().deleteBill(widget.billId);
       if (mounted) Navigator.pop(context);
     }
   }

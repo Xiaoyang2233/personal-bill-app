@@ -22,16 +22,38 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _chartMode = 'pie';
   bool _showLedgerPicker = false;
+  int? _loadedLedgerId;
 
   @override
   void initState() {
     super.initState();
     _loadChartMode();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
+    final ledgerProvider = context.read<LedgerProvider>();
+    ledgerProvider.addListener(_onLedgerChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDataIfReady());
+  }
+
+  @override
+  void dispose() {
+    context.read<LedgerProvider>().removeListener(_onLedgerChanged);
+    super.dispose();
+  }
+
+  void _onLedgerChanged() {
+    _loadDataIfReady();
+  }
+
+  void _loadDataIfReady() {
+    final ledger = context.read<LedgerProvider>().activeLedger;
+    if (ledger != null && ledger.id != _loadedLedgerId) {
+      _loadedLedgerId = ledger.id;
+      _loadData();
+    }
   }
 
   Future<void> _loadChartMode() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() => _chartMode = prefs.getString('chart_mode') ?? 'pie');
   }
 
