@@ -38,7 +38,11 @@ class _BudgetManageScreenState extends State<BudgetManageScreen> {
   }
 
   Future<void> _loadCategories() async {
-    _categories = await _categoryService.getCategories('expense');
+    try {
+      _categories = await _categoryService.getCategories('expense');
+    } catch (_) {
+      _categories = CategoryService.defaultExpenseCategories;
+    }
     setState(() {});
   }
 

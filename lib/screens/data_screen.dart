@@ -404,9 +404,7 @@ class _DataScreenState extends State<DataScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Container(height: 0.5, color: theme.borderColor),
-              const SizedBox(height: 14),
+              const SizedBox(height: 24),
               Row(
                 children: [
                   _buildStat('${stats?.recordCount ?? 0}', '总记录', theme.textColor, theme),

@@ -21,28 +21,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     '#1C1C1E', '#263238', '#1B5E20', '#0D47A1',
   ];
 
-  double _localOpacity = 0.5;
-
-  @override
-  void initState() {
-    super.initState();
-    context.read<ThemeProvider>().addListener(_onThemeChanged);
-  }
-
-  @override
-  void dispose() {
-    context.read<ThemeProvider>().removeListener(_onThemeChanged);
-    super.dispose();
-  }
-
-  void _onThemeChanged() {
-    if (!mounted) return;
-    final theme = context.read<ThemeProvider>();
-    if (_localOpacity != theme.backgroundOpacity) {
-      setState(() => _localOpacity = theme.backgroundOpacity);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeProvider>();
@@ -111,18 +89,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('背景透明度', style: TextStyle(fontSize: 13, color: theme.textColor)),
-                  Text('${(_localOpacity * 100).round()}%',
+                  Text('${(theme.backgroundOpacity * 100).round()}%',
                     style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
                 ],
               ),
               Slider(
-                value: _localOpacity,
+                value: theme.backgroundOpacity,
                 min: 0,
                 max: 1,
                 activeColor: theme.primaryColor,
                 inactiveColor: theme.borderColor,
                 onChanged: (v) {
-                  setState(() => _localOpacity = v);
                   theme.setBackgroundOpacity(v);
                 },
               ),
@@ -279,17 +256,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.circular(10),
         splashColor: theme.primaryColor.withAlpha(30),
         highlightColor: theme.primaryColor.withAlpha(20),
-        child: Ink(
-          decoration: BoxDecoration(
-            border: Border.all(color: theme.borderColor),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            alignment: Alignment.center,
-            child: Text(label, style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
-          ),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          alignment: Alignment.center,
+          child: Text(label, style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
         ),
       ),
     );
