@@ -85,8 +85,12 @@ class _LedgerManageScreenState extends State<LedgerManageScreen> {
               Text('账本管理', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: theme.textColor)),
               GestureDetector(
                 onTap: () => setState(() => _showCreate = !_showCreate),
-                child: Text(_showCreate ? '取消' : '+ 新增',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: theme.primaryColor)),
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(_showCreate ? '取消' : '+ 新增',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: theme.primaryColor)),
+                ),
               ),
             ],
           ),

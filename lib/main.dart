@@ -32,7 +32,7 @@ class FinanceApp extends StatelessWidget {
       child: Consumer<ThemeProvider>(
         builder: (context, theme, _) {
           return MaterialApp(
-            title: '记账',
+            title: '记一笔',
             debugShowCheckedModeBanner: false,
             themeMode: theme.mode,
             theme: ThemeData(

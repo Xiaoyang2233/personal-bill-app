@@ -26,11 +26,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final theme = context.read<ThemeProvider>();
+    context.read<ThemeProvider>().addListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    context.read<ThemeProvider>().removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    if (!mounted) return;
+    final theme = context.read<ThemeProvider>();
+    if (_localOpacity != theme.backgroundOpacity) {
       setState(() => _localOpacity = theme.backgroundOpacity);
-    });
+    }
   }
 
   @override
@@ -244,10 +254,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
         splashColor: theme.primaryColor.withAlpha(30),
         highlightColor: theme.primaryColor.withAlpha(20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

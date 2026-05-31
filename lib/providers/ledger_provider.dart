@@ -12,8 +12,15 @@ class LedgerProvider extends ChangeNotifier {
   Ledger? _activeLedger;
   Ledger? get activeLedger => _activeLedger;
 
+  Future<void>? _initFuture;
+
   LedgerProvider() {
-    loadLedgers();
+    _initFuture = _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await loadLedgers();
+    _initFuture = null;
   }
 
   Future<void> loadLedgers() async {
@@ -23,7 +30,6 @@ class LedgerProvider extends ChangeNotifier {
       _ledgers = await _ledgerService.getLedgers();
     }
     if (_ledgers.isNotEmpty && _activeLedger == null) {
-      // Restore previously selected ledger from SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       final savedId = prefs.getInt('active_ledger_id');
       if (savedId != null) {
@@ -35,12 +41,12 @@ class LedgerProvider extends ChangeNotifier {
   }
 
   Future<Ledger> ensureLedger() async {
-    if (_activeLedger != null) return _activeLedger!;
-    await loadLedgers();
-    if (_activeLedger == null) {
-      await _ledgerService.createLedger('个人账本');
-      await loadLedgers();
+    if (_initFuture != null) {
+      await _initFuture;
     }
+    if (_activeLedger != null) return _activeLedger!;
+    await _ledgerService.createLedger('个人账本');
+    await loadLedgers();
     return _activeLedger!;
   }
 
