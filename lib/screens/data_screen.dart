@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/theme_provider.dart';
 import '../providers/bill_provider.dart';
 import '../providers/ledger_provider.dart';
@@ -25,10 +26,28 @@ class _DataScreenState extends State<DataScreen> {
   bool _loading = false;
   String? _loadingLabel;
 
+  bool _autoBackup = false;
+  String _autoBackupPeriod = 'weekly'; // 'daily', 'weekly', 'monthly'
+
   @override
   void initState() {
     super.initState();
+    _loadSettings();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _autoBackup = prefs.getBool('auto_backup') ?? false;
+      _autoBackupPeriod = prefs.getString('auto_backup_period') ?? 'weekly';
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('auto_backup', _autoBackup);
+    await prefs.setString('auto_backup_period', _autoBackupPeriod);
   }
 
   Future<void> _loadData() async {
@@ -252,6 +271,50 @@ class _DataScreenState extends State<DataScreen> {
           ),
         ),
 
+        // Auto Backup Settings
+        GlassContainer(
+          padding: const EdgeInsets.all(20),
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('自动备份设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('自动备份', style: TextStyle(fontSize: 14, color: theme.textColor)),
+                  Switch(
+                    value: _autoBackup,
+                    onChanged: (v) {
+                      setState(() => _autoBackup = v);
+                      _saveSettings();
+                    },
+                    activeColor: theme.primaryColor,
+                  ),
+                ],
+              ),
+              if (_autoBackup) ...[
+                const SizedBox(height: 12),
+                Text('备份周期', style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _buildChip('每日', 'daily'),
+                    const SizedBox(width: 8),
+                    _buildChip('每周', 'weekly'),
+                    const SizedBox(width: 8),
+                    _buildChip('每月', 'monthly'),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text('开启后，APP将在备份周期内自动创建加密备份文件',
+                  style: TextStyle(fontSize: 12, color: theme.textSecondaryColor)),
+              ],
+            ],
+          ),
+        ),
+
         // Export Section
         GlassContainer(
           padding: const EdgeInsets.all(20),
@@ -337,9 +400,20 @@ class _DataScreenState extends State<DataScreen> {
 
   Widget _buildChip(String label, String value) {
     final theme = context.watch<ThemeProvider>();
-    final selected = _exportRange == value;
+    final selected = value == 'daily' || value == 'weekly' || value == 'monthly'
+        ? _autoBackupPeriod == value
+        : _exportRange == value;
     return GestureDetector(
-      onTap: () => setState(() => _exportRange = value),
+      onTap: () {
+        setState(() {
+          if (value == 'daily' || value == 'weekly' || value == 'monthly') {
+            _autoBackupPeriod = value;
+            _saveSettings();
+          } else {
+            _exportRange = value;
+          }
+        });
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(

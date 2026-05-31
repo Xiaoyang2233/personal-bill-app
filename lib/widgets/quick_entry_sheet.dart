@@ -189,6 +189,7 @@ class _QuickEntrySheetState extends State<QuickEntrySheet> {
             // Amount input
             TextField(
               controller: _amountController,
+              autofocus: true,
               style: TextStyle(
                 fontSize: 36, fontWeight: FontWeight.w700,
                 color: _type == 'expense' ? theme.expenseColor : theme.incomeColor,

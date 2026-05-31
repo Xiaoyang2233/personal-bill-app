@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/ledger.dart';
 import '../database/ledger_service.dart';
 
@@ -22,7 +23,13 @@ class LedgerProvider extends ChangeNotifier {
       _ledgers = await _ledgerService.getLedgers();
     }
     if (_ledgers.isNotEmpty && _activeLedger == null) {
-      _activeLedger = _ledgers.first;
+      // Restore previously selected ledger from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final savedId = prefs.getInt('active_ledger_id');
+      if (savedId != null) {
+        _activeLedger = _ledgers.where((l) => l.id == savedId).firstOrNull;
+      }
+      _activeLedger ??= _ledgers.first;
     }
     notifyListeners();
   }
@@ -52,11 +59,20 @@ class LedgerProvider extends ChangeNotifier {
     await loadLedgers();
     if (_activeLedger?.id == id && _ledgers.isNotEmpty) {
       _activeLedger = _ledgers.first;
+      await _persistActiveLedger();
     }
   }
 
-  void switchLedger(int id) {
+  Future<void> switchLedger(int id) async {
     _activeLedger = _ledgers.where((l) => l.id == id).firstOrNull;
+    await _persistActiveLedger();
     notifyListeners();
+  }
+
+  Future<void> _persistActiveLedger() async {
+    if (_activeLedger?.id != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('active_ledger_id', _activeLedger!.id!);
+    }
   }
 }

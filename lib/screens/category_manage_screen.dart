@@ -7,6 +7,7 @@ import '../database/category_service.dart';
 import '../database/bill_service.dart';
 import '../models/category.dart';
 import '../widgets/glass_container.dart';
+import '../widgets/app_background.dart';
 
 const colorOptions = [
   '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
@@ -128,9 +129,9 @@ class _CategoryManageScreenState extends State<CategoryManageScreen> {
     final theme = context.watch<ThemeProvider>();
     final topSafe = MediaQuery.of(context).padding.top;
 
-    return Scaffold(
-      body: ListView(
-        padding: EdgeInsets.only(top: topSafe, left: 16, right: 16, bottom: 60),
+    return AppBackground(
+      child: ListView(
+        padding: EdgeInsets.only(top: topSafe, left: 16, right: 16, bottom: 100),
         children: [
           // Header
           Padding(

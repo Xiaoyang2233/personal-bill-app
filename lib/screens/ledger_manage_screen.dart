@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/ledger_provider.dart';
 import '../widgets/glass_container.dart';
+import '../widgets/app_background.dart';
 
 const ledgerColors = ['#4A90D9', '#E74C3C', '#2ECC71', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22'];
 
@@ -67,8 +68,9 @@ class _LedgerManageScreenState extends State<LedgerManageScreen> {
     final ledgerProvider = context.watch<LedgerProvider>();
     final topSafe = MediaQuery.of(context).padding.top;
 
-    return ListView(
-      padding: EdgeInsets.only(top: topSafe, left: 16, right: 16, bottom: 30),
+    return AppBackground(
+      child: ListView(
+        padding: EdgeInsets.only(top: topSafe, left: 16, right: 16, bottom: 100),
       children: [
         // Header
         Padding(
@@ -210,6 +212,7 @@ class _LedgerManageScreenState extends State<LedgerManageScreen> {
         }),
         const SizedBox(height: 60),
       ],
+      ),
     );
   }
 }

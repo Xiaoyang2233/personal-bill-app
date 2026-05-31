@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/theme_provider.dart';
 import '../providers/bill_provider.dart';
 import '../providers/ledger_provider.dart';
@@ -19,13 +20,25 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _chartMode = 'pie'; // 'pie', 'bar', 'line'
+  String _chartMode = 'pie';
   bool _showLedgerPicker = false;
 
   @override
   void initState() {
     super.initState();
+    _loadChartMode();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
+  }
+
+  Future<void> _loadChartMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() => _chartMode = prefs.getString('chart_mode') ?? 'pie');
+  }
+
+  Future<void> _setChartMode(String mode) async {
+    setState(() => _chartMode = mode);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('chart_mode', mode);
   }
 
   Future<void> _loadData() async {
@@ -148,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => setState(() => _chartMode = mode),
+          onTap: () => _setChartMode(mode),
           borderRadius: BorderRadius.circular(16),
           splashColor: theme.primaryColor.withAlpha(50),
           highlightColor: theme.primaryColor.withAlpha(30),

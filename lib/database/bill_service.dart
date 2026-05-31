@@ -31,8 +31,11 @@ class BillService {
     String? date,
   }) async {
     final db = await _db.database;
+    final now = DateTime.now();
+    final ts = '${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')} '
+        '${now.hour.toString().padLeft(2,'0')}:${now.minute.toString().padLeft(2,'0')}:${now.second.toString().padLeft(2,'0')}';
     final updates = <String, dynamic>{
-      "updated_at": "datetime('now','localtime')",
+      'updated_at': ts,
     };
     if (type != null) updates['type'] = type;
     if (amount != null) updates['amount'] = amount;

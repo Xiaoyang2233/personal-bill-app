@@ -7,6 +7,7 @@ import '../database/category_service.dart';
 import '../models/category.dart';
 import '../utils/currency_utils.dart';
 import '../widgets/glass_container.dart';
+import '../widgets/app_background.dart';
 
 class BudgetManageScreen extends StatefulWidget {
   const BudgetManageScreen({super.key});
@@ -67,8 +68,9 @@ class _BudgetManageScreenState extends State<BudgetManageScreen> {
     final budgetProvider = context.watch<BudgetProvider>();
     final topSafe = MediaQuery.of(context).padding.top;
 
-    return ListView(
-      padding: EdgeInsets.only(top: topSafe, left: 16, right: 16, bottom: 30),
+    return AppBackground(
+      child: ListView(
+        padding: EdgeInsets.only(top: topSafe, left: 16, right: 16, bottom: 100),
       children: [
         // Header
         Padding(
@@ -242,6 +244,7 @@ class _BudgetManageScreenState extends State<BudgetManageScreen> {
         }),
         const SizedBox(height: 60),
       ],
+      ),
     );
   }
 }

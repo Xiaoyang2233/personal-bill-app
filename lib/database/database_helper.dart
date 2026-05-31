@@ -22,6 +22,11 @@ class DatabaseHelper {
       path,
       version: 1,
       onCreate: _createDB,
+      onConfigure: (db) async {
+        // Force DELETE journal mode: data is written directly to disk,
+        // avoiding WAL checkpoint loss on app kill
+        await db.execute('PRAGMA journal_mode=DELETE');
+      },
     );
   }
 

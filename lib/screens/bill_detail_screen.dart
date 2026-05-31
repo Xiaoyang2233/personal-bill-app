@@ -8,6 +8,7 @@ import '../models/category.dart';
 import '../utils/currency_utils.dart';
 import '../utils/date_utils.dart';
 import '../widgets/glass_container.dart';
+import '../widgets/app_background.dart';
 
 class BillDetailScreen extends StatefulWidget {
   final int billId;
@@ -99,8 +100,8 @@ class _BillDetailScreenState extends State<BillDetailScreen> {
       future: _billService.getBillById(widget.billId),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return Scaffold(
-            body: Center(
+          return AppBackground(
+            child: Center(
               child: Text('账单不存在或已被删除',
                 style: TextStyle(color: theme.textSecondaryColor)),
             ),
@@ -108,9 +109,9 @@ class _BillDetailScreenState extends State<BillDetailScreen> {
         }
         final bill = snapshot.data!;
 
-        return Scaffold(
-          body: ListView(
-            padding: EdgeInsets.only(top: topSafe, left: 16, right: 16, bottom: 30),
+        return AppBackground(
+          child: ListView(
+            padding: EdgeInsets.only(top: topSafe, left: 16, right: 16, bottom: 90),
             children: [
               // Header
               Padding(
