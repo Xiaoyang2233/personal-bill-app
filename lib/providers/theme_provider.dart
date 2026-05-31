@@ -67,6 +67,13 @@ class ThemeProvider extends ChangeNotifier {
     _loadSettings();
   }
 
+  Future<void> _ensurePrefs() async {
+    if (_prefs == null) {
+      _prefs = await SharedPreferences.getInstance();
+      _loadSettings();
+    }
+  }
+
   void _loadSettings() {
     if (_prefs == null) return;
 
@@ -91,6 +98,7 @@ class ThemeProvider extends ChangeNotifier {
 
   Future<void> setThemeMode(ThemeMode mode) async {
     _mode = mode;
+    await _ensurePrefs();
     final str = mode == ThemeMode.light ? 'light' : mode == ThemeMode.dark ? 'dark' : 'system';
     await _prefs?.setString('theme_mode', str);
     notifyListeners();
@@ -99,6 +107,7 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> setBackgroundImage(String path) async {
     _backgroundImage = path;
     _backgroundType = 'image';
+    await _ensurePrefs();
     await _prefs?.setString('background_image', path);
     await _prefs?.setString('background_type', 'image');
     notifyListeners();
@@ -118,6 +127,7 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> setBackgroundColor(String color) async {
     _backgroundColor = color;
     _backgroundType = 'color';
+    await _ensurePrefs();
     await _prefs?.setString('background_color', color);
     await _prefs?.setString('background_type', 'color');
     notifyListeners();
@@ -125,6 +135,7 @@ class ThemeProvider extends ChangeNotifier {
 
   Future<void> setBackgroundOpacity(double opacity) async {
     _backgroundOpacity = opacity;
+    await _ensurePrefs();
     await _prefs?.setDouble('background_opacity', opacity);
     notifyListeners();
   }
@@ -134,6 +145,7 @@ class ThemeProvider extends ChangeNotifier {
     _backgroundColor = '#F5F7FA';
     _backgroundImage = '';
     _backgroundOpacity = 0.5;
+    await _ensurePrefs();
     await _prefs?.setString('background_type', 'color');
     await _prefs?.setString('background_color', '#F5F7FA');
     await _prefs?.setString('background_image', '');

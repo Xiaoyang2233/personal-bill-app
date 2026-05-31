@@ -203,6 +203,14 @@ class _QuickEntrySheetState extends State<QuickEntrySheet> {
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide(color: theme.borderColor, width: 0.5),
                 ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: theme.borderColor, width: 0.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: _type == 'expense' ? theme.expenseColor : theme.incomeColor),
+                ),
                 filled: true,
                 fillColor: theme.inputBgColor,
               ),
@@ -269,6 +277,14 @@ class _QuickEntrySheetState extends State<QuickEntrySheet> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide(color: theme.borderColor, width: 0.5),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: theme.borderColor, width: 0.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: theme.primaryColor),
                 ),
                 filled: true,
                 fillColor: theme.inputBgColor,

@@ -109,6 +109,14 @@ class _LedgerManageScreenState extends State<LedgerManageScreen> {
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(color: theme.borderColor),
                     ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: theme.borderColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: theme.primaryColor),
+                    ),
                     filled: true,
                     fillColor: theme.inputBgColor,
                   ),
@@ -175,7 +183,19 @@ class _LedgerManageScreenState extends State<LedgerManageScreen> {
                           style: TextStyle(fontSize: 16, color: theme.textColor),
                           autofocus: true,
                           decoration: InputDecoration(
-                            border: UnderlineInputBorder(borderSide: BorderSide(color: theme.primaryColor)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: theme.primaryColor),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: theme.primaryColor),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: theme.primaryColor, width: 2),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
                           onSubmitted: (v) {
                             if (v.trim().isNotEmpty) {

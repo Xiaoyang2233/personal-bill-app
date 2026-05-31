@@ -143,6 +143,14 @@ class _BudgetManageScreenState extends State<BudgetManageScreen> {
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(color: theme.borderColor),
                     ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: theme.borderColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: theme.primaryColor),
+                    ),
                     filled: true,
                     fillColor: theme.inputBgColor,
                   ),
@@ -159,6 +167,14 @@ class _BudgetManageScreenState extends State<BudgetManageScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(color: theme.borderColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: theme.borderColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: theme.primaryColor),
                     ),
                     filled: true,
                     fillColor: theme.inputBgColor,

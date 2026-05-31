@@ -205,6 +205,14 @@ class _BillDetailScreenState extends State<BillDetailScreen> {
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: theme.borderColor),
             ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: theme.borderColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: theme.primaryColor),
+            ),
             filled: true,
             fillColor: theme.inputBgColor,
           ),
@@ -262,6 +270,14 @@ class _BillDetailScreenState extends State<BillDetailScreen> {
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(color: theme.borderColor),
             ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: theme.borderColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: theme.primaryColor),
+            ),
             filled: true,
             fillColor: theme.inputBgColor,
           ),
@@ -283,6 +299,14 @@ class _BillDetailScreenState extends State<BillDetailScreen> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(color: theme.borderColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: theme.borderColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: theme.primaryColor),
             ),
             filled: true,
             fillColor: theme.inputBgColor,

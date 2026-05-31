@@ -27,13 +27,34 @@ class _DataScreenState extends State<DataScreen> {
   String? _loadingLabel;
 
   bool _autoBackup = false;
-  String _autoBackupPeriod = 'weekly'; // 'daily', 'weekly', 'monthly'
+  String _autoBackupPeriod = 'weekly';
+  int? _loadedLedgerId;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
+    final ledgerProvider = context.read<LedgerProvider>();
+    ledgerProvider.addListener(_onLedgerChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDataIfReady());
+  }
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _onLedgerChanged() {
+    _loadDataIfReady();
+  }
+
+  void _loadDataIfReady() {
+    final ledger = context.read<LedgerProvider>().activeLedger;
+    if (ledger != null && ledger.id != _loadedLedgerId) {
+      _loadedLedgerId = ledger.id;
+      _loadData();
+    }
   }
 
   Future<void> _loadSettings() async {
@@ -55,12 +76,6 @@ class _DataScreenState extends State<DataScreen> {
     if (ledger != null) {
       await context.read<BillProvider>().loadBills(ledger.id!);
     }
-  }
-
-  @override
-  void dispose() {
-    _passwordController.dispose();
-    super.dispose();
   }
 
   ({String? start, String? end}) _getDateFilter() {
