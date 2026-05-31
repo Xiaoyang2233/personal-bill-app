@@ -41,7 +41,7 @@ class FinanceApp extends StatelessWidget {
               colorScheme: ColorScheme.fromSeed(seedColor: theme.primaryColor),
               pageTransitionsTheme: const PageTransitionsTheme(
                 builders: {
-                  TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+                  TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
                   TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
                 },
               ),
@@ -55,12 +55,12 @@ class FinanceApp extends StatelessWidget {
               ),
               pageTransitionsTheme: const PageTransitionsTheme(
                 builders: {
-                  TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+                  TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
                   TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
                 },
               ),
             ),
-            home: AppShell(),
+            home: const AppShell(),
           );
         },
       ),
@@ -81,7 +81,7 @@ class _AppShellState extends State<AppShell> {
   final _screens = const [
     HomeScreen(),
     HistoryScreen(),
-    SizedBox(), // placeholder for center button
+    SizedBox(),
     DataScreen(),
     SettingsScreen(),
   ];
@@ -102,11 +102,9 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background layer
           Positioned.fill(
             child: _buildBackground(theme),
           ),
-          // Content layer
           Positioned.fill(
             child: IndexedStack(
               index: _currentIndex,
@@ -120,24 +118,24 @@ class _AppShellState extends State<AppShell> {
   }
 
   Widget _buildBackground(ThemeProvider theme) {
+    final isDark = theme.isDark;
+    final defaultColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F7FA);
+
     return Stack(
+      fit: StackFit.expand,
       children: [
-        // Base color
-        Container(
-          color: theme.backgroundType == 'color'
-              ? Color(int.parse(theme.backgroundColor.replaceAll('#', '0xFF')))
-              : const Color(0xFFF5F7FA),
-        ),
-        // Background image
+        Container(color: defaultColor),
+        if (theme.backgroundType == 'color')
+          Container(
+            color: Color(int.parse(theme.backgroundColor.replaceAll('#', '0xFF'))),
+          ),
         if (theme.backgroundType == 'image' && theme.backgroundImage.isNotEmpty)
-          Positioned.fill(
-            child: Opacity(
-              opacity: theme.backgroundOpacity,
-              child: Image.file(
-                File(theme.backgroundImage),
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              ),
+          Opacity(
+            opacity: theme.backgroundOpacity,
+            child: Image.file(
+              File(theme.backgroundImage),
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
             ),
           ),
       ],
@@ -189,14 +187,20 @@ class _AppShellState extends State<AppShell> {
           children: [
             Text(icon, style: TextStyle(fontSize: selected ? 24 : 22)),
             if (selected)
-              Container(width: 4, height: 4, margin: const EdgeInsets.only(top: 2),
-                decoration: BoxDecoration(color: theme.primaryColor, shape: BoxShape.circle)),
+              Container(
+                width: 4, height: 4,
+                margin: const EdgeInsets.only(top: 2),
+                decoration: BoxDecoration(color: theme.primaryColor, shape: BoxShape.circle),
+              ),
             const SizedBox(height: 2),
-            Text(label, style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: selected ? theme.primaryColor : theme.textSecondaryColor,
-            )),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: selected ? theme.primaryColor : theme.textSecondaryColor,
+              ),
+            ),
           ],
         ),
       ),

@@ -22,16 +22,12 @@ class DatabaseHelper {
       path,
       version: 1,
       onCreate: _createDB,
-      onConfigure: (db) async {
-        await db.execute('PRAGMA journal_mode=WAL');
-        await db.execute('PRAGMA foreign_keys=ON');
-      },
     );
   }
 
   Future<void> _createDB(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE ledgers (
+      CREATE TABLE IF NOT EXISTS ledgers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         icon TEXT DEFAULT '📒',
@@ -42,7 +38,7 @@ class DatabaseHelper {
     ''');
 
     await db.execute('''
-      CREATE TABLE bills (
+      CREATE TABLE IF NOT EXISTS bills (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ledger_id INTEGER NOT NULL,
         type TEXT NOT NULL CHECK(type IN ('expense','income')),
@@ -51,38 +47,39 @@ class DatabaseHelper {
         note TEXT DEFAULT '',
         date TEXT NOT NULL,
         created_at TEXT DEFAULT (datetime('now','localtime')),
-        updated_at TEXT DEFAULT (datetime('now','localtime')),
-        FOREIGN KEY (ledger_id) REFERENCES ledgers(id) ON DELETE CASCADE
+        updated_at TEXT DEFAULT (datetime('now','localtime'))
       )
     ''');
 
     await db.execute('''
-      CREATE TABLE budgets (
+      CREATE TABLE IF NOT EXISTS budgets (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ledger_id INTEGER NOT NULL,
         category TEXT NOT NULL,
         amount REAL NOT NULL,
         period TEXT DEFAULT 'monthly',
-        alert_threshold REAL DEFAULT 0.8,
-        FOREIGN KEY (ledger_id) REFERENCES ledgers(id) ON DELETE CASCADE
+        alert_threshold REAL DEFAULT 0.8
       )
     ''');
 
     await db.execute('''
-      CREATE TABLE settings (
+      CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
       )
     ''');
 
-    // Create default ledger
-    await db.insert('ledgers', {
-      'name': '个人账本',
-      'icon': '📒',
-      'color': '#4A90D9',
-    });
+    // Create default ledger if none exists
+    final existingLedgers = await db.query('ledgers');
+    if (existingLedgers.isEmpty) {
+      await db.insert('ledgers', {
+        'name': '个人账本',
+        'icon': '📒',
+        'color': '#4A90D9',
+      });
+    }
 
-    // Insert default settings
+    // Insert default settings if not present
     final defaultSettings = {
       'theme_mode': 'system',
       'background_type': 'color',
@@ -92,58 +89,61 @@ class DatabaseHelper {
       'chart_mode': 'pie',
     };
     for (final entry in defaultSettings.entries) {
-      await db.insert('settings', {
-        'key': entry.key,
-        'value': entry.value,
-      });
+      final exists = await db.query('settings', where: 'key = ?', whereArgs: [entry.key]);
+      if (exists.isEmpty) {
+        await db.insert('settings', {'key': entry.key, 'value': entry.value});
+      }
     }
 
-    // Insert default categories
-    final defaultExpenseCategories = [
-      {'label': '餐饮', 'icon': '🍔', 'color': '#FF6384'},
-      {'label': '交通', 'icon': '🚌', 'color': '#36A2EB'},
-      {'label': '购物', 'icon': '🛒', 'color': '#FFCE56'},
-      {'label': '住房', 'icon': '🏠', 'color': '#4BC0C0'},
-      {'label': '娱乐', 'icon': '🎮', 'color': '#9966FF'},
-      {'label': '医疗', 'icon': '💊', 'color': '#FF9F40'},
-      {'label': '教育', 'icon': '📚', 'color': '#7BC8A4'},
-      {'label': '通讯', 'icon': '📱', 'color': '#E8A87C'},
-      {'label': '日用', 'icon': '🧴', 'color': '#95A5A6'},
-      {'label': '其他', 'icon': '📌', 'color': '#C9CBCF'},
-    ];
-    final defaultIncomeCategories = [
-      {'label': '工资', 'icon': '💰', 'color': '#2ECC71'},
-      {'label': '奖金', 'icon': '🎁', 'color': '#3498DB'},
-      {'label': '投资', 'icon': '📈', 'color': '#9B59B6'},
-      {'label': '兼职', 'icon': '💼', 'color': '#1ABC9C'},
-      {'label': '报销', 'icon': '↩️', 'color': '#E67E22'},
-      {'label': '其他', 'icon': '📌', 'color': '#95A5A6'},
-    ];
+    // Insert default categories if not present
+    final catsExist = await db.query('settings', where: 'key = ?', whereArgs: ['custom_categories_expense']);
+    if (catsExist.isEmpty) {
+      final defaultExpenseCategories = [
+        {'label': '餐饮', 'icon': '🍔', 'color': '#FF6384', 'isDefault': true},
+        {'label': '交通', 'icon': '🚌', 'color': '#36A2EB', 'isDefault': true},
+        {'label': '购物', 'icon': '🛒', 'color': '#FFCE56', 'isDefault': true},
+        {'label': '娱乐', 'icon': '🎮', 'color': '#9966FF', 'isDefault': true},
+        {'label': '其他', 'icon': '📌', 'color': '#C9CBCF', 'isDefault': true},
+      ];
+      final defaultIncomeCategories = [
+        {'label': '工资', 'icon': '💰', 'color': '#2ECC71', 'isDefault': true},
+        {'label': '转账', 'icon': '↩️', 'color': '#E67E22', 'isDefault': true},
+        {'label': '其他', 'icon': '📌', 'color': '#95A5A6', 'isDefault': true},
+      ];
 
-    await db.insert('settings', {
-      'key': 'custom_categories_expense',
-      'value': jsonEncode(defaultExpenseCategories.map((c) => {...c, 'isDefault': true}).toList()),
-    });
-    await db.insert('settings', {
-      'key': 'custom_categories_income',
-      'value': jsonEncode(defaultIncomeCategories.map((c) => {...c, 'isDefault': true}).toList()),
-    });
+      await db.insert('settings', {
+        'key': 'custom_categories_expense',
+        'value': jsonEncode(defaultExpenseCategories),
+      });
+      await db.insert('settings', {
+        'key': 'custom_categories_income',
+        'value': jsonEncode(defaultIncomeCategories),
+      });
+    }
   }
 
   Future<String> getSetting(String key) async {
-    final db = await database;
-    final result = await db.query('settings', where: 'key = ?', whereArgs: [key]);
-    if (result.isEmpty) return '';
-    return result.first['value'] as String;
+    try {
+      final db = await database;
+      final result = await db.query('settings', where: 'key = ?', whereArgs: [key]);
+      if (result.isEmpty) return '';
+      return result.first['value'] as String;
+    } catch (_) {
+      return '';
+    }
   }
 
   Future<void> setSetting(String key, String value) async {
-    final db = await database;
-    await db.insert(
-      'settings',
-      {'key': key, 'value': value},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    try {
+      final db = await database;
+      await db.insert(
+        'settings',
+        {'key': key, 'value': value},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (_) {
+      // Silently fail - settings will use SharedPreferences fallback
+    }
   }
 
   Future<String> getDatabasePath() async {

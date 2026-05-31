@@ -21,7 +21,7 @@ class _DataScreenState extends State<DataScreen> {
   final _backupService = BackupService();
   bool _encryptBackup = false;
   final _passwordController = TextEditingController();
-  String _exportRange = 'month'; // 'month', 'week', 'all'
+  String _exportRange = 'month';
   bool _loading = false;
   String? _loadingLabel;
 
@@ -191,7 +191,7 @@ class _DataScreenState extends State<DataScreen> {
     final stats = billProvider.allTimeStats;
 
     return ListView(
-      padding: EdgeInsets.only(top: topSafe + 8, left: 16, right: 16, bottom: 30),
+      padding: EdgeInsets.only(top: topSafe + 8, left: 16, right: 16, bottom: 90),
       children: [
         // Backup Section
         GlassContainer(
@@ -202,8 +202,6 @@ class _DataScreenState extends State<DataScreen> {
             children: [
               Text('数据备份与恢复', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
               const SizedBox(height: 12),
-
-              // Encrypt toggle
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -215,26 +213,26 @@ class _DataScreenState extends State<DataScreen> {
                   ),
                 ],
               ),
-
               if (_encryptBackup)
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  style: TextStyle(color: theme.textColor),
-                  decoration: InputDecoration(
-                    hintText: '设置备份密码',
-                    hintStyle: TextStyle(color: theme.textSecondaryColor),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: theme.borderColor),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    style: TextStyle(color: theme.textColor),
+                    decoration: InputDecoration(
+                      hintText: '设置备份密码',
+                      hintStyle: TextStyle(color: theme.textSecondaryColor),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: theme.borderColor),
+                      ),
+                      filled: true,
+                      fillColor: theme.inputBgColor,
                     ),
-                    filled: true,
-                    fillColor: theme.inputBgColor,
                   ),
                 ),
               const SizedBox(height: 8),
-
-              // Create backup button
               _buildButton(
                 label: '创建备份',
                 loading: _loadingLabel == 'backup',
@@ -243,7 +241,6 @@ class _DataScreenState extends State<DataScreen> {
                 onTap: _loading ? null : _createBackup,
               ),
               const SizedBox(height: 8),
-              // Restore button
               _buildOutlinedButton(
                 label: '从备份恢复',
                 loading: _loadingLabel == 'restore',
@@ -264,8 +261,6 @@ class _DataScreenState extends State<DataScreen> {
             children: [
               Text('数据导出', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
               const SizedBox(height: 12),
-
-              // Export range
               Row(
                 children: [
                   _buildChip('本月', 'month'),
@@ -276,8 +271,6 @@ class _DataScreenState extends State<DataScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-
-              // Export buttons
               Row(
                 children: [
                   Expanded(
@@ -365,9 +358,9 @@ class _DataScreenState extends State<DataScreen> {
     return Expanded(
       child: Column(
         children: [
-          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: color)),
+          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: color)),
           const SizedBox(height: 4),
-          Text(label, style: TextStyle(fontSize: 12, color: theme.textSecondaryColor)),
+          Text(label, style: TextStyle(fontSize: 11, color: theme.textSecondaryColor)),
         ],
       ),
     );
@@ -380,18 +373,26 @@ class _DataScreenState extends State<DataScreen> {
     required Color textColor,
     VoidCallback? onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(16),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        splashColor: color.withAlpha(50),
+        highlightColor: color.withAlpha(30),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            alignment: Alignment.center,
+            child: loading
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : Text(label, style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.w600)),
+          ),
         ),
-        alignment: Alignment.center,
-        child: loading
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-            : Text(label, style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -403,18 +404,26 @@ class _DataScreenState extends State<DataScreen> {
     required Color textColor,
     VoidCallback? onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          border: Border.all(color: borderColor, width: 1.5),
-          borderRadius: BorderRadius.circular(16),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        splashColor: borderColor.withAlpha(30),
+        highlightColor: borderColor.withAlpha(20),
+        child: Ink(
+          decoration: BoxDecoration(
+            border: Border.all(color: borderColor, width: 1.5),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            alignment: Alignment.center,
+            child: loading
+                ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: textColor))
+                : Text(label, style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.w600)),
+          ),
         ),
-        alignment: Alignment.center,
-        child: loading
-            ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: textColor))
-            : Text(label, style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.w600)),
       ),
     );
   }

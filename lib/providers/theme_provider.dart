@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import '../database/database_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeProvider extends ChangeNotifier {
-  final _db = DatabaseHelper.instance;
+  SharedPreferences? _prefs;
 
   ThemeMode _mode = ThemeMode.system;
   ThemeMode get mode => _mode;
@@ -24,7 +24,6 @@ class ThemeProvider extends ChangeNotifier {
   double _backgroundOpacity = 0.5;
   double get backgroundOpacity => _backgroundOpacity;
 
-  // Computed theme colors
   bool get isDark {
     if (_mode == ThemeMode.dark) return true;
     if (_mode == ThemeMode.light) return false;
@@ -39,8 +38,8 @@ class ThemeProvider extends ChangeNotifier {
   Color get warningColor => const Color(0xFFF39C12);
 
   Color get cardColor => isDark
-      ? const Color.fromRGBO(0, 0, 0, 0.8)
-      : const Color.fromRGBO(255, 255, 255, 0.8);
+      ? const Color.fromRGBO(0, 0, 0, 0.85)
+      : const Color.fromRGBO(255, 255, 255, 0.85);
 
   Color get inputBgColor => isDark
       ? const Color.fromRGBO(30, 30, 30, 0.7)
@@ -60,27 +59,24 @@ class ThemeProvider extends ChangeNotifier {
   Color get overlayColor => Colors.black.withAlpha((0.4 * 255).round());
 
   ThemeProvider() {
+    _initPrefs();
+  }
+
+  Future<void> _initPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
     _loadSettings();
   }
 
-  Future<void> _loadSettings() async {
-    final modeStr = await _db.getSetting('theme_mode');
-    if (modeStr.isNotEmpty) {
-      _mode = _parseThemeMode(modeStr);
-    }
+  void _loadSettings() {
+    if (_prefs == null) return;
 
-    _backgroundType = await _db.getSetting('background_type');
-    if (_backgroundType.isEmpty) _backgroundType = 'color';
+    final modeStr = _prefs!.getString('theme_mode') ?? 'system';
+    _mode = _parseThemeMode(modeStr);
 
-    final bgColor = await _db.getSetting('background_color');
-    if (bgColor.isNotEmpty) _backgroundColor = bgColor;
-
-    _backgroundImage = await _db.getSetting('background_image');
-
-    final opacityStr = await _db.getSetting('background_opacity');
-    if (opacityStr.isNotEmpty) {
-      _backgroundOpacity = double.tryParse(opacityStr) ?? 0.5;
-    }
+    _backgroundType = _prefs!.getString('background_type') ?? 'color';
+    _backgroundColor = _prefs!.getString('background_color') ?? '#F5F7FA';
+    _backgroundImage = _prefs!.getString('background_image') ?? '';
+    _backgroundOpacity = _prefs!.getDouble('background_opacity') ?? 0.5;
 
     notifyListeners();
   }
@@ -96,15 +92,15 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> setThemeMode(ThemeMode mode) async {
     _mode = mode;
     final str = mode == ThemeMode.light ? 'light' : mode == ThemeMode.dark ? 'dark' : 'system';
-    await _db.setSetting('theme_mode', str);
+    await _prefs?.setString('theme_mode', str);
     notifyListeners();
   }
 
   Future<void> setBackgroundImage(String path) async {
     _backgroundImage = path;
     _backgroundType = 'image';
-    await _db.setSetting('background_image', path);
-    await _db.setSetting('background_type', 'image');
+    await _prefs?.setString('background_image', path);
+    await _prefs?.setString('background_type', 'image');
     notifyListeners();
   }
 
@@ -122,14 +118,14 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> setBackgroundColor(String color) async {
     _backgroundColor = color;
     _backgroundType = 'color';
-    await _db.setSetting('background_color', color);
-    await _db.setSetting('background_type', 'color');
+    await _prefs?.setString('background_color', color);
+    await _prefs?.setString('background_type', 'color');
     notifyListeners();
   }
 
   Future<void> setBackgroundOpacity(double opacity) async {
     _backgroundOpacity = opacity;
-    await _db.setSetting('background_opacity', opacity.toString());
+    await _prefs?.setDouble('background_opacity', opacity);
     notifyListeners();
   }
 
@@ -138,10 +134,10 @@ class ThemeProvider extends ChangeNotifier {
     _backgroundColor = '#F5F7FA';
     _backgroundImage = '';
     _backgroundOpacity = 0.5;
-    await _db.setSetting('background_type', 'color');
-    await _db.setSetting('background_color', '#F5F7FA');
-    await _db.setSetting('background_image', '');
-    await _db.setSetting('background_opacity', '0.5');
+    await _prefs?.setString('background_type', 'color');
+    await _prefs?.setString('background_color', '#F5F7FA');
+    await _prefs?.setString('background_image', '');
+    await _prefs?.setDouble('background_opacity', 0.5);
     notifyListeners();
   }
 }

@@ -39,7 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final topSafe = MediaQuery.of(context).padding.top;
 
     return ListView(
-      padding: EdgeInsets.only(top: topSafe + 8, left: 16, right: 16, bottom: 30),
+      padding: EdgeInsets.only(top: topSafe + 8, left: 16, right: 16, bottom: 90),
       children: [
         // Theme Mode
         GlassContainer(
@@ -52,11 +52,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 14),
               Row(
                 children: [
-                  _buildThemeBtn('白天', ThemeMode.light, theme),
+                  _buildThemeBtn('☀️ 白天', ThemeMode.light, theme),
                   const SizedBox(width: 8),
-                  _buildThemeBtn('黑夜', ThemeMode.dark, theme),
+                  _buildThemeBtn('🌙 黑夜', ThemeMode.dark, theme),
                   const SizedBox(width: 8),
-                  _buildThemeBtn('跟随系统', ThemeMode.system, theme),
+                  _buildThemeBtn('📱 跟随系统', ThemeMode.system, theme),
                 ],
               ),
             ],
@@ -72,8 +72,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Text('背景设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
               const SizedBox(height: 14),
-
-              // Type toggle
               Row(
                 children: [
                   Expanded(
@@ -87,8 +85,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               const SizedBox(height: 14),
-
-              // Preview
               if (theme.backgroundType == 'image' && theme.backgroundImage.isNotEmpty)
                 Container(
                   height: 120,
@@ -101,8 +97,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               const SizedBox(height: 14),
-
-              // Opacity slider
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -122,8 +116,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   theme.setBackgroundOpacity(v);
                 },
               ),
-
-              // Preset colors
               if (theme.backgroundType == 'color')
                 Wrap(
                   spacing: 8,
@@ -147,24 +139,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     );
                   }).toList(),
                 ),
-
               const SizedBox(height: 10),
-              // Clear background
-              GestureDetector(
-                onTap: () {
-                  setState(() => _confirmClearBg = true);
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: theme.borderColor),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text('重置背景', style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
-                ),
-              ),
+              _buildTextButton('重置背景', () {
+                setState(() => _confirmClearBg = true);
+              }, theme),
             ],
           ),
         ),
@@ -203,9 +181,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
 
-        // Clear background dialog
-        if (_confirmClearBg)
-          _showClearDialog(theme),
+        if (_confirmClearBg) _showClearDialog(theme),
       ],
     );
   }
@@ -218,18 +194,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: InkWell(
           onTap: () => theme.setThemeMode(mode),
           borderRadius: BorderRadius.circular(16),
-          splashColor: theme.primaryColor.withAlpha(50),
-          highlightColor: theme.primaryColor.withAlpha(30),
+          splashColor: theme.primaryColor.withAlpha(60),
+          highlightColor: theme.primaryColor.withAlpha(40),
           child: Ink(
             decoration: BoxDecoration(
               color: active ? theme.primaryColor : theme.inputBgColor,
               borderRadius: BorderRadius.circular(16),
+              border: active ? Border.all(color: theme.primaryColor, width: 2) : null,
             ),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 10),
               alignment: Alignment.center,
               child: Text(label, style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w500,
+                fontSize: 13, fontWeight: FontWeight.w600,
                 color: active ? Colors.white : theme.textColor,
               )),
             ),
@@ -240,34 +217,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildToggleBtn(String label, bool active, VoidCallback onTap, ThemeProvider theme) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: active ? theme.primaryColor : theme.inputBgColor,
-          borderRadius: BorderRadius.circular(16),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        splashColor: theme.primaryColor.withAlpha(50),
+        highlightColor: theme.primaryColor.withAlpha(30),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: active ? theme.primaryColor : theme.inputBgColor,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            alignment: Alignment.center,
+            child: Text(label, style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: active ? Colors.white : theme.textColor,
+            )),
+          ),
         ),
-        alignment: Alignment.center,
-        child: Text(label, style: TextStyle(
-          fontWeight: FontWeight.w500,
-          color: active ? Colors.white : theme.textColor,
-        )),
       ),
     );
   }
 
   Widget _buildMenuItem(String label, VoidCallback onTap, ThemeProvider theme) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: TextStyle(fontSize: 15, color: theme.textColor)),
-            Text('→', style: TextStyle(fontSize: 16, color: theme.textSecondaryColor)),
-          ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        splashColor: theme.primaryColor.withAlpha(30),
+        highlightColor: theme.primaryColor.withAlpha(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label, style: TextStyle(fontSize: 15, color: theme.textColor)),
+              Text('→', style: TextStyle(fontSize: 16, color: theme.textSecondaryColor)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextButton(String label, VoidCallback onTap, ThemeProvider theme) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        splashColor: theme.primaryColor.withAlpha(30),
+        highlightColor: theme.primaryColor.withAlpha(20),
+        child: Ink(
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.borderColor),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            alignment: Alignment.center,
+            child: Text(label, style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
+          ),
         ),
       ),
     );

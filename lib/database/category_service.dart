@@ -9,21 +9,13 @@ class CategoryService {
     CustomCategory(label: '餐饮', icon: '🍔', color: '#FF6384', isDefault: true),
     CustomCategory(label: '交通', icon: '🚌', color: '#36A2EB', isDefault: true),
     CustomCategory(label: '购物', icon: '🛒', color: '#FFCE56', isDefault: true),
-    CustomCategory(label: '住房', icon: '🏠', color: '#4BC0C0', isDefault: true),
     CustomCategory(label: '娱乐', icon: '🎮', color: '#9966FF', isDefault: true),
-    CustomCategory(label: '医疗', icon: '💊', color: '#FF9F40', isDefault: true),
-    CustomCategory(label: '教育', icon: '📚', color: '#7BC8A4', isDefault: true),
-    CustomCategory(label: '通讯', icon: '📱', color: '#E8A87C', isDefault: true),
-    CustomCategory(label: '日用', icon: '🧴', color: '#95A5A6', isDefault: true),
     CustomCategory(label: '其他', icon: '📌', color: '#C9CBCF', isDefault: true),
   ];
 
   static final defaultIncomeCategories = [
     CustomCategory(label: '工资', icon: '💰', color: '#2ECC71', isDefault: true),
-    CustomCategory(label: '奖金', icon: '🎁', color: '#3498DB', isDefault: true),
-    CustomCategory(label: '投资', icon: '📈', color: '#9B59B6', isDefault: true),
-    CustomCategory(label: '兼职', icon: '💼', color: '#1ABC9C', isDefault: true),
-    CustomCategory(label: '报销', icon: '↩️', color: '#E67E22', isDefault: true),
+    CustomCategory(label: '转账', icon: '↩️', color: '#E67E22', isDefault: true),
     CustomCategory(label: '其他', icon: '📌', color: '#95A5A6', isDefault: true),
   ];
 

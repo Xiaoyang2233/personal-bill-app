@@ -145,19 +145,27 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildToggle(String label, String mode, ThemeProvider theme) {
     final active = _chartMode == mode;
     return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _chartMode = mode),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: active ? theme.primaryColor : const Color(0xFFE5E5EA),
-            borderRadius: BorderRadius.circular(16),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => setState(() => _chartMode = mode),
+          borderRadius: BorderRadius.circular(16),
+          splashColor: theme.primaryColor.withAlpha(50),
+          highlightColor: theme.primaryColor.withAlpha(30),
+          child: Ink(
+            decoration: BoxDecoration(
+              color: active ? theme.primaryColor : theme.inputBgColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              alignment: Alignment.center,
+              child: Text(label, style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w600,
+                color: active ? Colors.white : theme.textColor,
+              )),
+            ),
           ),
-          alignment: Alignment.center,
-          child: Text(label, style: TextStyle(
-            fontSize: 13, fontWeight: FontWeight.w600,
-            color: active ? Colors.white : theme.textColor,
-          )),
         ),
       ),
     );

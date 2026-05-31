@@ -121,7 +121,7 @@ class _FilterBarState extends State<FilterBar> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? theme.primaryColor : theme.cardColor,
+          color: selected ? theme.primaryColor : theme.inputBgColor,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(label, style: TextStyle(
