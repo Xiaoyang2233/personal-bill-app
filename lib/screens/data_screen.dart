@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -25,6 +24,19 @@ class _DataScreenState extends State<DataScreen> {
   String _exportRange = 'month'; // 'month', 'week', 'all'
   bool _loading = false;
   String? _loadingLabel;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
+  }
+
+  Future<void> _loadData() async {
+    final ledger = context.read<LedgerProvider>().activeLedger;
+    if (ledger != null) {
+      await context.read<BillProvider>().loadBills(ledger.id!);
+    }
+  }
 
   @override
   void dispose() {

@@ -17,10 +17,24 @@ class LedgerProvider extends ChangeNotifier {
 
   Future<void> loadLedgers() async {
     _ledgers = await _ledgerService.getLedgers();
+    if (_ledgers.isEmpty) {
+      await _ledgerService.createLedger('个人账本');
+      _ledgers = await _ledgerService.getLedgers();
+    }
     if (_ledgers.isNotEmpty && _activeLedger == null) {
       _activeLedger = _ledgers.first;
     }
     notifyListeners();
+  }
+
+  Future<Ledger> ensureLedger() async {
+    if (_activeLedger != null) return _activeLedger!;
+    await loadLedgers();
+    if (_activeLedger == null) {
+      await _ledgerService.createLedger('个人账本');
+      await loadLedgers();
+    }
+    return _activeLedger!;
   }
 
   Future<void> createLedger(String name, {String icon = '📒', String color = '#4A90D9'}) async {

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -27,7 +28,7 @@ class ThemeProvider extends ChangeNotifier {
   bool get isDark {
     if (_mode == ThemeMode.dark) return true;
     if (_mode == ThemeMode.light) return false;
-    return WidgetsBinding.instance.window.platformBrightness == Brightness.dark;
+    return PlatformDispatcher.instance.platformBrightness == Brightness.dark;
   }
 
   Color get primaryColor => const Color(0xFF4A90D9);
@@ -38,20 +39,20 @@ class ThemeProvider extends ChangeNotifier {
   Color get warningColor => const Color(0xFFF39C12);
 
   Color get cardColor => isDark
-      ? const Color(0xFF1E1E20).withAlpha((0.72 * 255).round())
-      : const Color(0xFFFFFFFF).withAlpha((0.72 * 255).round());
+      ? const Color.fromRGBO(0, 0, 0, 0.8)
+      : const Color.fromRGBO(255, 255, 255, 0.8);
 
   Color get inputBgColor => isDark
-      ? const Color(0xFF2C2C2E).withAlpha((0.78 * 255).round())
-      : const Color(0xFFF2F2F7).withAlpha((0.78 * 255).round());
+      ? const Color.fromRGBO(30, 30, 30, 0.7)
+      : const Color.fromRGBO(255, 255, 255, 0.7);
 
   Color get tabBarColor => isDark
-      ? const Color(0xFF141416).withAlpha((0.78 * 255).round())
-      : const Color(0xFFFFFFFF).withAlpha((0.78 * 255).round());
+      ? const Color.fromRGBO(20, 20, 22, 0.85)
+      : const Color.fromRGBO(255, 255, 255, 0.85);
 
   Color get borderColor => isDark
-      ? const Color(0xFF38383A).withAlpha((0.5 * 255).round())
-      : const Color(0xFFE5E5EA).withAlpha((0.7 * 255).round());
+      ? const Color.fromRGBO(56, 56, 58, 0.5)
+      : const Color.fromRGBO(229, 229, 234, 0.7);
 
   Color get textColor => isDark ? Colors.white : Colors.black;
   Color get textSecondaryColor => isDark ? const Color(0xFFBBBBBB) : const Color(0xFF555555);

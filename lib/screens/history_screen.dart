@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/bill_provider.dart';
-import '../providers/ledger_provider.dart';
 import '../models/bill.dart';
 import '../widgets/bill_item.dart';
 import '../widgets/filter_bar.dart';

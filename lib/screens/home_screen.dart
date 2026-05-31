@@ -57,8 +57,9 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           // Ledger Switcher
           GlassContainer(
-            margin: const EdgeInsets.only(bottom: 10),
+            margin: const EdgeInsets.only(bottom: 10, top: 4),
             child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () => setState(() => _showLedgerPicker = !_showLedgerPicker),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

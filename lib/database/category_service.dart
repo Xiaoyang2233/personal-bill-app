@@ -34,15 +34,21 @@ class CategoryService {
     if (json.isEmpty) {
       final defaults = type == 'expense' ? defaultExpenseCategories : defaultIncomeCategories;
       await saveCategories(type, defaults);
-      return defaults;
+      return List.from(defaults);
     }
     try {
       final list = jsonDecode(json) as List;
-      return list.map((e) => CustomCategory.fromJson(e as Map<String, dynamic>)).toList();
+      final categories = list.map((e) => CustomCategory.fromJson(e as Map<String, dynamic>)).toList();
+      if (categories.isEmpty) {
+        final defaults = type == 'expense' ? defaultExpenseCategories : defaultIncomeCategories;
+        await saveCategories(type, defaults);
+        return List.from(defaults);
+      }
+      return categories;
     } catch (_) {
       final defaults = type == 'expense' ? defaultExpenseCategories : defaultIncomeCategories;
       await saveCategories(type, defaults);
-      return defaults;
+      return List.from(defaults);
     }
   }
 

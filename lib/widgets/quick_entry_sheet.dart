@@ -5,6 +5,7 @@ import '../providers/bill_provider.dart';
 import '../providers/ledger_provider.dart';
 import '../database/category_service.dart';
 import '../models/category.dart';
+import '../models/ledger.dart';
 import '../utils/currency_utils.dart';
 import '../utils/date_utils.dart';
 
@@ -32,20 +33,38 @@ class _QuickEntrySheetState extends State<QuickEntrySheet> {
   }
 
   Future<void> _loadCategories() async {
-    final cats = await _categoryService.getCategories('expense');
-    setState(() {
-      _categories = cats;
-      _category = cats.isNotEmpty ? cats.first.label : '';
-    });
+    try {
+      final cats = await _categoryService.getCategories('expense');
+      setState(() {
+        _categories = cats;
+        _category = cats.isNotEmpty ? cats.first.label : '';
+      });
+    } catch (_) {
+      setState(() {
+        _categories = CategoryService.defaultExpenseCategories;
+        _category = _categories.isNotEmpty ? _categories.first.label : '';
+      });
+    }
   }
 
   Future<void> _switchType(String type) async {
-    final cats = await _categoryService.getCategories(type);
-    setState(() {
-      _type = type;
-      _categories = cats;
-      _category = cats.isNotEmpty ? cats.first.label : '';
-    });
+    try {
+      final cats = await _categoryService.getCategories(type);
+      setState(() {
+        _type = type;
+        _categories = cats;
+        _category = cats.isNotEmpty ? cats.first.label : '';
+      });
+    } catch (_) {
+      final defaults = type == 'expense'
+          ? CategoryService.defaultExpenseCategories
+          : CategoryService.defaultIncomeCategories;
+      setState(() {
+        _type = type;
+        _categories = defaults;
+        _category = defaults.isNotEmpty ? defaults.first.label : '';
+      });
+    }
   }
 
   Future<void> _save() async {
@@ -57,26 +76,39 @@ class _QuickEntrySheetState extends State<QuickEntrySheet> {
       return;
     }
 
-    final ledger = context.read<LedgerProvider>().activeLedger;
-    if (ledger == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先创建账本')),
-      );
+    final ledgerProvider = context.read<LedgerProvider>();
+    Ledger ledger;
+    try {
+      ledger = await ledgerProvider.ensureLedger();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('初始化账本失败: $e')),
+        );
+      }
       return;
     }
 
-    await context.read<BillProvider>().addBill(
-      ledgerId: ledger.id!,
-      type: _type,
-      amount: amount,
-      category: _category.isNotEmpty ? _category : '其他',
-      note: _noteController.text.trim(),
-      date: getToday(),
-    );
+    try {
+      await context.read<BillProvider>().addBill(
+        ledgerId: ledger.id!,
+        type: _type,
+        amount: amount,
+        category: _category.isNotEmpty ? _category : '其他',
+        note: _noteController.text.trim(),
+        date: getToday(),
+      );
 
-    setState(() => _saved = true);
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (mounted) Navigator.pop(context);
+      setState(() => _saved = true);
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败: $e')),
+        );
+      }
+    }
   }
 
   @override

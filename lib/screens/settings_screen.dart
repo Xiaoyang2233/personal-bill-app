@@ -22,6 +22,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   ];
 
   bool _confirmClearBg = false;
+  late double _localOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final theme = context.read<ThemeProvider>();
+      setState(() => _localOpacity = theme.backgroundOpacity);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,17 +107,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('背景透明度', style: TextStyle(fontSize: 13, color: theme.textColor)),
-                  Text('${(theme.backgroundOpacity * 100).round()}%',
+                  Text('${(_localOpacity * 100).round()}%',
                     style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
                 ],
               ),
               Slider(
-                value: theme.backgroundOpacity,
+                value: _localOpacity,
                 min: 0,
                 max: 1,
                 activeColor: theme.primaryColor,
                 inactiveColor: theme.borderColor,
-                onChanged: theme.setBackgroundOpacity,
+                onChanged: (v) {
+                  setState(() => _localOpacity = v);
+                  theme.setBackgroundOpacity(v);
+                },
               ),
 
               // Preset colors
@@ -200,19 +213,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildThemeBtn(String label, ThemeMode mode, ThemeProvider theme) {
     final active = theme.mode == mode;
     return Expanded(
-      child: GestureDetector(
-        onTap: () => theme.setThemeMode(mode),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: active ? theme.primaryColor : theme.inputBgColor,
-            borderRadius: BorderRadius.circular(16),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => theme.setThemeMode(mode),
+          borderRadius: BorderRadius.circular(16),
+          splashColor: theme.primaryColor.withAlpha(50),
+          highlightColor: theme.primaryColor.withAlpha(30),
+          child: Ink(
+            decoration: BoxDecoration(
+              color: active ? theme.primaryColor : theme.inputBgColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              alignment: Alignment.center,
+              child: Text(label, style: TextStyle(
+                fontSize: 14, fontWeight: FontWeight.w500,
+                color: active ? Colors.white : theme.textColor,
+              )),
+            ),
           ),
-          alignment: Alignment.center,
-          child: Text(label, style: TextStyle(
-            fontSize: 14, fontWeight: FontWeight.w500,
-            color: active ? Colors.white : theme.textColor,
-          )),
         ),
       ),
     );

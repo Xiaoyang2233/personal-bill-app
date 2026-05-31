@@ -39,6 +39,12 @@ class FinanceApp extends StatelessWidget {
               brightness: Brightness.light,
               scaffoldBackgroundColor: Colors.transparent,
               colorScheme: ColorScheme.fromSeed(seedColor: theme.primaryColor),
+              pageTransitionsTheme: const PageTransitionsTheme(
+                builders: {
+                  TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+                  TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+                },
+              ),
             ),
             darkTheme: ThemeData(
               brightness: Brightness.dark,
@@ -46,6 +52,12 @@ class FinanceApp extends StatelessWidget {
               colorScheme: ColorScheme.fromSeed(
                 seedColor: theme.primaryColor,
                 brightness: Brightness.dark,
+              ),
+              pageTransitionsTheme: const PageTransitionsTheme(
+                builders: {
+                  TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+                  TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+                },
               ),
             ),
             home: AppShell(),
@@ -118,13 +130,14 @@ class _AppShellState extends State<AppShell> {
         ),
         // Background image
         if (theme.backgroundType == 'image' && theme.backgroundImage.isNotEmpty)
-          Opacity(
-            opacity: theme.backgroundOpacity,
-            child: Image.file(
-              File(theme.backgroundImage),
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
+          Positioned.fill(
+            child: Opacity(
+              opacity: theme.backgroundOpacity,
+              child: Image.file(
+                File(theme.backgroundImage),
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
             ),
           ),
       ],
