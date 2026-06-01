@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/theme_provider.dart';
 import '../providers/bill_provider.dart';
@@ -31,6 +32,7 @@ class _DataScreenState extends State<DataScreen> {
   bool _autoBackup = false;
   String _autoBackupPeriod = 'weekly';
   int? _loadedLedgerId;
+  String _nextBackupCountdown = '';
 
   @override
   void initState() {
@@ -70,6 +72,56 @@ class _DataScreenState extends State<DataScreen> {
       _autoBackup = prefs.getBool('auto_backup') ?? false;
       _autoBackupPeriod = prefs.getString('auto_backup_period') ?? 'weekly';
     });
+    _updateCountdown();
+  }
+
+  void _updateCountdown() {
+    if (!_autoBackup) {
+      setState(() => _nextBackupCountdown = '');
+      return;
+    }
+    SharedPreferences.getInstance().then((prefs) {
+      final now = DateTime.now();
+      DateTime nextBackup;
+
+      switch (_autoBackupPeriod) {
+        case 'daily':
+          // Next midnight (00:00 of next day)
+          nextBackup = DateTime(now.year, now.month, now.day + 1);
+          break;
+        case 'weekly':
+          // Next Monday at midnight
+          final daysUntilMonday = (8 - now.weekday) % 7;
+          final days = daysUntilMonday == 0 ? 7 : daysUntilMonday;
+          nextBackup = DateTime(now.year, now.month, now.day + days);
+          break;
+        case 'monthly':
+          // Next 1st of month at midnight
+          if (now.month == 12) {
+            nextBackup = DateTime(now.year + 1, 1, 1);
+          } else {
+            nextBackup = DateTime(now.year, now.month + 1, 1);
+          }
+          break;
+        default:
+          nextBackup = DateTime(now.year, now.month, now.day + 7);
+      }
+
+      final diff = nextBackup.difference(now);
+      final totalMinutes = diff.inMinutes;
+      final days = totalMinutes ~/ (24 * 60);
+      final hours = (totalMinutes % (24 * 60)) ~/ 60;
+      final minutes = totalMinutes % 60;
+      String text = '距离下次自动备份还有：';
+      if (days > 0) {
+        text += '${days}天';
+      } else {
+        if (hours > 0) text += '${hours}小时';
+        if (minutes > 0) text += '${minutes}分钟';
+        if (hours == 0 && minutes == 0) text += '即将执行';
+      }
+      setState(() => _nextBackupCountdown = text);
+    });
   }
 
   Future<void> _saveSettings() async {
@@ -104,19 +156,52 @@ class _DataScreenState extends State<DataScreen> {
     return '记一笔_账单导出_$d';
   }
 
+  void _showChartColorHelp() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('图表配色自定义使用指南'),
+        content: const SingleChildScrollView(
+          child: Text(
+            '在这里你可以自定义每个分类的图表颜色，让你的收支图表更符合你的喜好。\n\n'
+            '点击分类对应的颜色块，选择你想要的颜色\n'
+            '选择完成后，点击保存\n\n'
+            '⚠️ 注意：设置完成后，需要回到首页下拉刷新一下，图表颜色才会同步更新\n\n'
+            '重启 APP 后，你的自定义配色会永久保存，不会丢失',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('知道了')),
+        ],
+      ),
+    );
+  }
+
   void _showBackupHelp() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('数据备份说明'),
+        title: const Text('数据备份与恢复使用指南'),
         content: const SingleChildScrollView(
           child: Text(
-            '1. 备份文件保存到手机公共下载目录：\n   /Download/记一笔/备份/\n\n'
-            '2. 导出文件保存到：\n   /Download/记一笔/导出/\n\n'
-            '3. 备份文件名格式：记一笔_备份_2026-06-01_16-26.db\n\n'
-            '4. 开启「加密备份」可为备份文件设置密码保护\n\n'
-            '5. 自动备份功能会在设定周期内自动创建备份\n\n'
-            '6. 可在文件管理器的Download/记一笔目录中找到所有文件',
+            '💾 手动备份\n'
+            '点击「更改」可以选择备份文件保存的位置（默认保存在手机下载文件夹）\n'
+            '开启「加密备份」后，备份文件会用你设置的密码加密，别人拿到文件也看不到你的账单\n'
+            '⚠️ 重要提醒：加密密码一定要记牢！忘记密码无法恢复备份数据！\n'
+            '点击「创建备份」，等待几秒即可完成，备份文件会自动带上时间戳\n\n'
+            '🔄 自动备份\n'
+            '开启自动备份后，APP 会按照你选择的周期（每日 / 每周 / 每月）自动在后台创建备份\n'
+            '每日备份在零点执行，每周备份在周一零点执行，每月备份在1号零点执行\n'
+            '自动备份文件同样保存在你设置的位置，最多保留最近 10 个备份，旧备份会自动删除\n'
+            '页面会显示距离下次自动备份的剩余时间，不足24小时会显示小时和分钟\n\n'
+            '📥 从备份恢复\n'
+            '点击「从备份恢复」，在文件管理器中选择你之前保存的.db 备份文件\n'
+            '如果是加密备份，需要输入正确的密码才能恢复\n'
+            '恢复会覆盖当前 APP 内的所有数据，建议恢复前先手动备份一次当前数据\n\n'
+            '⚠️ 重要注意事项\n'
+            '备份文件是你的账单数据唯一保障，建议定期手动备份并保存到云盘或电脑\n'
+            '卸载 APP 会删除 APP 内的所有数据，但不会删除你保存在下载文件夹的备份文件\n'
+            '更换手机时，把备份文件复制到新手机，即可一键恢复所有账单',
           ),
         ),
         actions: [
@@ -134,11 +219,11 @@ class _DataScreenState extends State<DataScreen> {
         content: Text('文件已保存到:\n${result.path}'),
         actions: [
           TextButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(ctx);
-              await StorageChannel.openFile(result.path);
+              Share.shareXFiles([XFile(result.path)]);
             },
-            child: const Text('打开文件'),
+            child: const Text('分享'),
           ),
           TextButton(
             onPressed: () async {
@@ -161,11 +246,11 @@ class _DataScreenState extends State<DataScreen> {
         content: Text('文件已保存到:\n${result.path}'),
         actions: [
           TextButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(ctx);
-              await StorageChannel.openFile(result.path);
+              Share.shareXFiles([XFile(result.path)]);
             },
-            child: const Text('打开文件'),
+            child: const Text('分享'),
           ),
           TextButton(
             onPressed: () async {
@@ -406,8 +491,11 @@ class _DataScreenState extends State<DataScreen> {
                     Switch(
                       value: _autoBackup,
                       onChanged: (v) {
-                        setState(() => _autoBackup = v);
-                        _saveSettings();
+                        if (v) {
+                          _showAutoBackupConfirm();
+                        } else {
+                          _showAutoBackupDisableConfirm();
+                        }
                       },
                       activeColor: theme.primaryColor,
                     ),
@@ -426,7 +514,12 @@ class _DataScreenState extends State<DataScreen> {
                       _buildChip('每月', 'monthly'),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  if (_nextBackupCountdown.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(_nextBackupCountdown,
+                      style: TextStyle(fontSize: 12, color: theme.primaryColor)),
+                  ],
+                  const SizedBox(height: 8),
                   Text('开启后，APP将在备份周期内自动创建备份文件',
                     style: TextStyle(fontSize: 12, color: theme.textSecondaryColor)),
                 ],
@@ -491,7 +584,19 @@ class _DataScreenState extends State<DataScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('图表配色设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('图表配色设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
+                    GestureDetector(
+                      onTap: _showChartColorHelp,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(Icons.help_outline, size: 20, color: theme.textSecondaryColor),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 Text('自定义饼图分类颜色和趋势图线条颜色',
                   style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
@@ -546,19 +651,17 @@ class _DataScreenState extends State<DataScreen> {
 
   Widget _buildChip(String label, String value) {
     final theme = context.watch<ThemeProvider>();
-    final selected = value == 'daily' || value == 'weekly' || value == 'monthly'
+    final isBackupPeriod = value == 'daily' || value == 'weekly' || value == 'monthly';
+    final selected = isBackupPeriod
         ? _autoBackupPeriod == value
         : _exportRange == value;
     return GestureDetector(
       onTap: () {
-        setState(() {
-          if (value == 'daily' || value == 'weekly' || value == 'monthly') {
-            _autoBackupPeriod = value;
-            _saveSettings();
-          } else {
-            _exportRange = value;
-          }
-        });
+        if (isBackupPeriod && _autoBackupPeriod != value) {
+          _showPeriodChangeConfirm(value);
+        } else if (!isBackupPeriod) {
+          setState(() => _exportRange = value);
+        }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -570,6 +673,79 @@ class _DataScreenState extends State<DataScreen> {
           fontSize: 13, fontWeight: FontWeight.w500,
           color: selected ? Colors.white : theme.textColor,
         )),
+      ),
+    );
+  }
+
+  void _showAutoBackupConfirm() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('开启自动备份'),
+        content: const Text('确定要开启自动备份吗？开启后APP将按照设定周期自动创建备份文件。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() => _autoBackup = true);
+              _saveSettings();
+              SharedPreferences.getInstance().then((prefs) {
+                prefs.setString('auto_backup_last_time', DateTime.now().toIso8601String());
+                _updateCountdown();
+              });
+            },
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAutoBackupDisableConfirm() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('关闭自动备份'),
+        content: const Text('确定要关闭自动备份吗？关闭后将不再自动创建备份文件，建议定期手动备份。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() => _autoBackup = false);
+              _saveSettings();
+              _updateCountdown();
+            },
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPeriodChangeConfirm(String newPeriod) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('更改备份周期'),
+        content: const Text('确定要更改备份周期吗？更改后会重置自动备份的倒计时，下次备份时间将重新计算。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() => _autoBackupPeriod = newPeriod);
+              _saveSettings();
+              // Reset last backup time so countdown starts fresh
+              SharedPreferences.getInstance().then((prefs) {
+                prefs.setString('auto_backup_last_time', DateTime.now().toIso8601String());
+                _updateCountdown();
+              });
+            },
+            child: const Text('确定'),
+          ),
+        ],
       ),
     );
   }

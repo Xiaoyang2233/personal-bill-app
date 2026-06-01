@@ -317,10 +317,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(budget.category, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.textColor)),
-                  Text('${formatCurrency(spent)} / ${formatCurrency(budget.amount)}',
-                    style: TextStyle(fontSize: 13, color: theme.textColor)),
+                  GestureDetector(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetManageScreen())),
+                    child: Text('预算管理 →', style: TextStyle(fontSize: 12, color: theme.primaryColor)),
+                  ),
                 ],
               ),
+              const SizedBox(height: 4),
+              Text('${formatCurrency(spent)} / ${formatCurrency(budget.amount)}',
+                style: TextStyle(fontSize: 13, color: theme.textColor)),
               const SizedBox(height: 8),
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
@@ -368,22 +373,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
-
-    // Add "Budget Management" shortcut at the end
-    cards.add(
-      GestureDetector(
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetManageScreen())),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text('预算管理 →', style: TextStyle(fontSize: 13, color: theme.primaryColor)),
-            ],
-          ),
-        ),
-      ),
-    );
 
     return cards;
   }

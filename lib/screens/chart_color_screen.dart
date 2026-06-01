@@ -57,6 +57,12 @@ class _ChartColorScreenState extends State<ChartColorScreen> {
     await prefs.setString('chart_color_$category', color);
     setState(() => _customColors[category] = color);
     await ChartColorUtils.reload();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('配色设置已保存！请回到首页下拉刷新，图表颜色即可同步更新~'),
+          duration: Duration(seconds: 2)),
+      );
+    }
   }
 
   Future<void> _setTrendColor(String key, String color) async {
@@ -67,6 +73,12 @@ class _ChartColorScreenState extends State<ChartColorScreen> {
       if (key == 'chart_trend_expense') _trendExpenseColor = color;
     });
     await ChartColorUtils.reload();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('配色设置已保存！请回到首页下拉刷新，图表颜色即可同步更新~'),
+          duration: Duration(seconds: 2)),
+      );
+    }
   }
 
   Future<void> _resetAll() async {
