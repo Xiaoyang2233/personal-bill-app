@@ -1,11 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../providers/theme_provider.dart';
+import '../database/storage_channel.dart';
 import '../widgets/glass_container.dart';
 import 'ledger_manage_screen.dart';
 import 'budget_manage_screen.dart';
 import 'category_manage_screen.dart';
+import 'developer_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -165,9 +168,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('版本', style: TextStyle(fontSize: 14, color: theme.textSecondaryColor)),
-                  Text('1.1.3', style: TextStyle(fontSize: 14, color: theme.textColor)),
+                  Text('1.1.4', style: TextStyle(fontSize: 14, color: theme.textColor)),
                 ],
               ),
+              const SizedBox(height: 4),
+              _buildMenuItem('开发者', () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const DeveloperScreen())), theme),
+              _buildMenuItem('分享', () async {
+                final apkPath = await StorageChannel.getApkPath();
+                if (apkPath != null) {
+                  Share.shareXFiles([XFile(apkPath)], text: '记一笔 - 简洁好用的个人记账APP');
+                }
+              }, theme),
             ],
           ),
         ),

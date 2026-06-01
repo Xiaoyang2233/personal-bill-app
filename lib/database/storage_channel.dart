@@ -72,4 +72,16 @@ class StorageChannel {
       // Ignore
     }
   }
+
+  static Future<String?> getApkPath() async {
+    try {
+      if (Platform.isAndroid) {
+        final result = await _channel.invokeMethod('getApkPath');
+        return result as String?;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 }

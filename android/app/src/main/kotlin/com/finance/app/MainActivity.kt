@@ -47,6 +47,9 @@ class MainActivity: FlutterActivity() {
                 "requestStoragePermission" -> {
                     requestStoragePermission(result)
                 }
+                "getApkPath" -> {
+                    result.success(applicationInfo.sourceDir)
+                }
                 else -> result.notImplemented()
             }
         }
