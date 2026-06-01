@@ -49,7 +49,7 @@ class _BudgetManageScreenState extends State<BudgetManageScreen> {
   Future<void> _create() async {
     final amount = double.tryParse(_amountController.text);
     if (amount == null || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入有效预算金额')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入有效预算金额'), duration: Duration(seconds: 1)));
       return;
     }
     final ledger = context.read<LedgerProvider>().activeLedger;
@@ -72,10 +72,12 @@ class _BudgetManageScreenState extends State<BudgetManageScreen> {
     final budgetProvider = context.watch<BudgetProvider>();
     final topSafe = MediaQuery.of(context).padding.top;
 
-    return AppBackground(
-      child: ListView(
-        padding: EdgeInsets.only(top: topSafe, left: 16, right: 16, bottom: 100),
-      children: [
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: ListView(
+          padding: EdgeInsets.only(top: topSafe, left: 16, right: 16, bottom: 100),
+          children: [
         // Header
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -83,7 +85,10 @@ class _BudgetManageScreenState extends State<BudgetManageScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+  ScaffoldMessenger.of(context).clearSnackBars();
+  Navigator.pop(context);
+},
                 child: Text('← 返回', style: TextStyle(fontSize: 16, color: theme.primaryColor)),
               ),
               Text('预算管理', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: theme.textColor)),
@@ -267,8 +272,9 @@ class _BudgetManageScreenState extends State<BudgetManageScreen> {
           );
         }),
         const SizedBox(height: 60),
-      ],
+          ],
+        ),
       ),
-    );
+      );
+    }
   }
-}

@@ -11,9 +11,11 @@ import 'screens/data_screen.dart';
 import 'screens/settings_screen.dart';
 import 'widgets/quick_entry_sheet.dart';
 import 'widgets/center_button.dart';
+import 'utils/chart_color_utils.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  ChartColorUtils.load();
   runApp(const FinanceApp());
 }
 

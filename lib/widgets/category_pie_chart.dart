@@ -4,12 +4,14 @@ import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/bill.dart';
 import '../utils/currency_utils.dart';
+import '../utils/chart_color_utils.dart';
 import 'glass_container.dart';
 
 class CategoryPieChart extends StatelessWidget {
   final List<CategoryBreakdown> data;
+  final String title;
 
-  const CategoryPieChart({super.key, required this.data});
+  const CategoryPieChart({super.key, required this.data, this.title = '支出分类'});
 
   @override
   Widget build(BuildContext context) {
@@ -30,14 +32,15 @@ class CategoryPieChart extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          Text('本月支出分类', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.textColor)),
+          Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.textColor)),
           const SizedBox(height: 8),
           SizedBox(
             height: 200,
             child: PieChart(
               PieChartData(
                 sections: chartData.map((d) {
-                  final color = Color(int.parse(d.color.replaceAll('#', '0xFF')));
+                  final c = ChartColorUtils.getCategoryColor(d.category, d.color);
+                  final color = Color(int.parse(c.replaceAll('#', '0xFF')));
                   return PieChartSectionData(
                     value: d.total,
                     title: '${d.percentage.toStringAsFixed(0)}%',
@@ -53,7 +56,8 @@ class CategoryPieChart extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ...chartData.map((d) {
-            final color = Color(int.parse(d.color.replaceAll('#', '0xFF')));
+            final c = ChartColorUtils.getCategoryColor(d.category, d.color);
+            final color = Color(int.parse(c.replaceAll('#', '0xFF')));
             return Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: Row(

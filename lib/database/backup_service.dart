@@ -4,6 +4,8 @@ import 'package:path/path.dart' as p;
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:csv/csv.dart';
+import 'package:excel/excel.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'database_helper.dart';
 import 'bill_service.dart';
 
@@ -11,20 +13,43 @@ class BackupService {
   final _db = DatabaseHelper.instance;
   final _billService = BillService();
 
+  Future<Directory> _getBackupDirectory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPath = prefs.getString('backup_dir');
+    if (savedPath != null) {
+      final dir = Directory(savedPath);
+      if (await dir.exists()) return dir;
+    }
+    try {
+      final downloads = await getDownloadsDirectory();
+      if (downloads != null) return downloads;
+    } catch (_) {}
+    final docDir = await getApplicationDocumentsDirectory();
+    return docDir;
+  }
+
+  Future<void> setBackupDirectory(String path) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('backup_dir', path);
+  }
+
+  String _formatDate(DateTime d) {
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
   Future<String> createBackup({String? password}) async {
     final dbPath = await _db.getDatabasePath();
     final backupFile = await _copyDatabase(dbPath);
     final bytes = await backupFile.readAsBytes();
 
-    // Simple XOR encryption if password provided
     Uint8List data = bytes;
     if (password != null && password.isNotEmpty) {
       data = _xorEncrypt(bytes, password);
     }
 
-    final dir = await getApplicationDocumentsDirectory();
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final backupPath = p.join(dir.path, 'backup_$timestamp.fin');
+    final dir = await _getBackupDirectory();
+    final date = _formatDate(DateTime.now());
+    final backupPath = p.join(dir.path, '记一笔_备份_$date.db');
     await File(backupPath).writeAsBytes(data);
     return backupPath;
   }
@@ -37,10 +62,8 @@ class BackupService {
       data = _xorEncrypt(data, password);
     }
 
-    // Close existing database connection before overwriting the file
     await _db.closeDatabase();
 
-    // Write restored data to database file
     final dbPath = await _db.getDatabasePath();
     await File(dbPath).writeAsBytes(data);
   }
@@ -61,70 +84,128 @@ class BackupService {
     return result;
   }
 
-  Future<String> exportToCsv(int ledgerId, {String? startDate, String? endDate}) async {
+  Future<String> exportToCsv(int ledgerId, {String? startDate, String? endDate, String? customName}) async {
     final bills = await _billService.getBills(ledgerId, startDate: startDate, endDate: endDate);
 
     final rows = <List<String>>[
-      ['ID', '类型', '金额', '分类', '备注', '日期'],
+      ['日期', '类型', '分类', '金额', '备注'],
     ];
     for (final bill in bills) {
       rows.add([
-        bill.id.toString(),
-        bill.type == 'expense' ? '支出' : '收入',
-        bill.amount.toStringAsFixed(2),
-        bill.category,
-        bill.note,
         bill.date,
+        bill.type == 'expense' ? '支出' : '收入',
+        bill.category,
+        bill.amount.toStringAsFixed(2),
+        bill.note,
       ]);
     }
 
     final csvData = const ListToCsvConverter().convert(rows);
-    final dir = await getApplicationDocumentsDirectory();
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final filePath = p.join(dir.path, 'export_$timestamp.csv');
+    final dir = await _getBackupDirectory();
+    final name = customName ?? '记一笔_账单导出_${_formatDate(DateTime.now())}';
+    final filePath = p.join(dir.path, '$name.csv');
     await File(filePath).writeAsString(csvData, encoding: utf8);
     return filePath;
   }
 
-  Future<String> exportToExcel(int ledgerId, {String? startDate, String? endDate}) async {
+  Future<String> exportToExcel(int ledgerId, {String? startDate, String? endDate, String? customName}) async {
     final bills = await _billService.getBills(ledgerId, startDate: startDate, endDate: endDate);
 
-    // Build a simple Excel file using basic XML format
-    final buffer = StringBuffer();
-    buffer.writeln('<?xml version="1.0"?>');
-    buffer.writeln('<?mso-application progid="Excel.Sheet"?>');
-    buffer.writeln('<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"');
-    buffer.writeln(' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">');
-    buffer.writeln('<Worksheet ss:Name="账单数据">');
-    buffer.writeln('<Table>');
+    final excel = Excel.createExcel();
+    final sheet = excel['账单数据'];
 
-    // Header
-    buffer.writeln('<Row>');
-    for (final h in ['ID', '类型', '金额', '分类', '备注', '日期']) {
-      buffer.writeln('<Cell><Data ss:Type="String">$h</Data></Cell>');
+    final thinBorder = Border(borderStyle: BorderStyle.Thin);
+
+    // Header style
+    final headerStyle = CellStyle(
+      bold: true,
+      fontColorHex: ExcelColor.fromHexString('FFFFFFFF'),
+      backgroundColorHex: ExcelColor.fromHexString('FF4472C4'),
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+      leftBorder: thinBorder,
+      rightBorder: thinBorder,
+      topBorder: thinBorder,
+      bottomBorder: thinBorder,
+    );
+
+    // Income row style
+    final incomeStyle = CellStyle(
+      fontColorHex: ExcelColor.fromHexString('FF27AE60'),
+      leftBorder: thinBorder,
+      rightBorder: thinBorder,
+      topBorder: thinBorder,
+      bottomBorder: thinBorder,
+    );
+
+    // Expense row style
+    final expenseStyle = CellStyle(
+      fontColorHex: ExcelColor.fromHexString('FFE74C3C'),
+      leftBorder: thinBorder,
+      rightBorder: thinBorder,
+      topBorder: thinBorder,
+      bottomBorder: thinBorder,
+    );
+
+    // Header row
+    final headers = ['日期', '类型', '分类', '金额', '备注'];
+    for (int col = 0; col < headers.length; col++) {
+      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
+      cell.cellStyle = headerStyle;
+      cell.value = TextCellValue(headers[col]);
     }
-    buffer.writeln('</Row>');
 
-    // Data
-    for (final bill in bills) {
-      buffer.writeln('<Row>');
-      buffer.writeln('<Cell><Data ss:Type="Number">${bill.id}</Data></Cell>');
-      buffer.writeln('<Cell><Data ss:Type="String">${bill.type == 'expense' ? '支出' : '收入'}</Data></Cell>');
-      buffer.writeln('<Cell><Data ss:Type="Number">${bill.amount}</Data></Cell>');
-      buffer.writeln('<Cell><Data ss:Type="String">${bill.category}</Data></Cell>');
-      buffer.writeln('<Cell><Data ss:Type="String">${bill.note}</Data></Cell>');
-      buffer.writeln('<Cell><Data ss:Type="String">${bill.date}</Data></Cell>');
-      buffer.writeln('</Row>');
+    // Data rows
+    for (int i = 0; i < bills.length; i++) {
+      final bill = bills[i];
+      final isIncome = bill.type == 'income';
+      final rowStyle = isIncome ? incomeStyle : expenseStyle;
+      final row = i + 1;
+
+      final values = [
+        TextCellValue(bill.date),
+        TextCellValue(isIncome ? '收入' : '支出'),
+        TextCellValue(bill.category),
+        DoubleCellValue(bill.amount),
+        TextCellValue(bill.note),
+      ];
+
+      for (int col = 0; col < values.length; col++) {
+        final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row));
+        cell.cellStyle = rowStyle;
+        cell.value = values[col];
+      }
     }
 
-    buffer.writeln('</Table>');
-    buffer.writeln('</Worksheet>');
-    buffer.writeln('</Workbook>');
+    // Column widths
+    sheet.setColumnWidth(0, 14);
+    sheet.setColumnWidth(1, 8);
+    sheet.setColumnWidth(2, 10);
+    sheet.setColumnWidth(3, 15);
+    sheet.setColumnWidth(4, 28);
 
-    final dir = await getApplicationDocumentsDirectory();
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final filePath = p.join(dir.path, 'export_$timestamp.xls');
-    await File(filePath).writeAsString(buffer.toString(), encoding: utf8);
+    final bytes = excel.encode()!;
+    final dir = await _getBackupDirectory();
+    final name = customName ?? '记一笔_账单导出_${_formatDate(DateTime.now())}';
+    final filePath = p.join(dir.path, '$name.xlsx');
+    await File(filePath).writeAsBytes(bytes);
     return filePath;
+  }
+
+  Future<void> cleanupOldBackups() async {
+    final dir = await _getBackupDirectory();
+    if (!await dir.exists()) return;
+    final threshold = DateTime.now().subtract(const Duration(days: 30));
+    await for (final entity in dir.list()) {
+      if (entity is File) {
+        final name = p.basename(entity.path);
+        if (name.startsWith('记一笔_备份_') && (name.endsWith('.db') || name.endsWith('.fin'))) {
+          final stat = await entity.stat();
+          if (stat.modified.isBefore(threshold)) {
+            await entity.delete();
+          }
+        }
+      }
+    }
   }
 }

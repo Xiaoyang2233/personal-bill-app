@@ -68,7 +68,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _buildToggleBtn('纯色背景', theme.backgroundType == 'color',
-                      () => theme.setBackgroundColor(theme.backgroundColor), theme),
+                      () {
+                        if (theme.backgroundType == 'image' && theme.backgroundImage.isNotEmpty) {
+                          _showSwitchToColorDialog(theme);
+                        } else {
+                          theme.setBackgroundColor(theme.backgroundColor);
+                        }
+                      }, theme),
                   ),
                 ],
               ),
@@ -159,7 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('版本', style: TextStyle(fontSize: 14, color: theme.textSecondaryColor)),
-                  Text('1.0.0', style: TextStyle(fontSize: 14, color: theme.textColor)),
+                  Text('1.1.0', style: TextStyle(fontSize: 14, color: theme.textColor)),
                 ],
               ),
             ],
@@ -262,6 +268,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
           alignment: Alignment.center,
           child: Text(label, style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
         ),
+      ),
+    );
+  }
+
+  void _showSwitchToColorDialog(ThemeProvider theme) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('切换背景'),
+        content: const Text('确定要切换为纯色背景吗？当前自定义背景将被清除。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () {
+              theme.clearBackground();
+              Navigator.pop(ctx);
+            },
+            child: const Text('确定'),
+          ),
+        ],
       ),
     );
   }

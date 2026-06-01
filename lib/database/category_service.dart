@@ -6,18 +6,27 @@ class CategoryService {
   final _db = DatabaseHelper.instance;
 
   static final defaultExpenseCategories = [
-    CustomCategory(label: '餐饮', icon: '🍔', color: '#FF6384', isDefault: true),
-    CustomCategory(label: '交通', icon: '🚌', color: '#36A2EB', isDefault: true),
-    CustomCategory(label: '购物', icon: '🛒', color: '#FFCE56', isDefault: true),
-    CustomCategory(label: '娱乐', icon: '🎮', color: '#9966FF', isDefault: true),
-    CustomCategory(label: '其他', icon: '📌', color: '#C9CBCF', isDefault: true),
+    CustomCategory(label: '餐饮', icon: '🍔', color: '#FF6B6B', isDefault: true),
+    CustomCategory(label: '奶茶', icon: '🧋', color: '#FF9F43', isDefault: true),
+    CustomCategory(label: '饮料', icon: '🥤', color: '#54A0FF', isDefault: true),
+    CustomCategory(label: '交通', icon: '🚌', color: '#4ECDC4', isDefault: true),
+    CustomCategory(label: '购物', icon: '🛒', color: '#45B7D1', isDefault: true),
+    CustomCategory(label: '娱乐', icon: '🎮', color: '#96CEB4', isDefault: true),
+    CustomCategory(label: '生活费', icon: '🏠', color: '#A29BFE', isDefault: true),
+    CustomCategory(label: '其他', icon: '📌', color: '#98D8C8', isDefault: true),
   ];
 
   static final defaultIncomeCategories = [
-    CustomCategory(label: '工资', icon: '💰', color: '#2ECC71', isDefault: true),
-    CustomCategory(label: '转账', icon: '↩️', color: '#E67E22', isDefault: true),
-    CustomCategory(label: '其他', icon: '📌', color: '#95A5A6', isDefault: true),
+    CustomCategory(label: '工资', icon: '💰', color: '#FFEAA7', isDefault: true),
+    CustomCategory(label: '转账', icon: '↩️', color: '#DDA0DD', isDefault: true),
+    CustomCategory(label: '其他', icon: '📌', color: '#98D8C8', isDefault: true),
   ];
+
+  static const categoryColorMap = {
+    '餐饮': '#FF6B6B', '奶茶': '#FF9F43', '饮料': '#54A0FF',
+    '交通': '#4ECDC4', '购物': '#45B7D1', '娱乐': '#96CEB4',
+    '工资': '#FFEAA7', '生活费': '#A29BFE', '转账': '#DDA0DD', '其他': '#98D8C8',
+  };
 
   String _key(String type) => 'custom_categories_$type';
 

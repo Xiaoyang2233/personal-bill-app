@@ -23,9 +23,13 @@ String formatDisplayDate(String date) {
   final target = DateTime(d.year, d.month, d.day);
   final diff = today.difference(target).inDays;
 
+  const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
   if (diff == 0) return '今天';
   if (diff == 1) return '昨天';
-  if (diff < 7) return '$diff天前';
+  if (diff == 2) return '前天';
+  if (diff < 7) return '${d.month}月${d.day}日 ${weekDays[d.weekday - 1]}';
+  if (d.year == now.year) return '${d.month}月${d.day}日';
 
-  return '${d.month}月${d.day}日';
+  return '${d.year}年${d.month}月${d.day}日';
 }

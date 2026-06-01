@@ -7,10 +7,11 @@ import '../models/category.dart';
 class FilterBar extends StatefulWidget {
   final String filterType; // 'all', 'expense', 'income'
   final ValueChanged<String> onTypeChanged;
-  final String dateRange; // 'month', 'week', 'all'
+  final String dateRange; // 'month', 'week', 'all', 'date'
   final ValueChanged<String> onDateRangeChanged;
   final String filterCategory;
   final ValueChanged<String> onCategoryChanged;
+  final VoidCallback? onPickDate;
 
   const FilterBar({
     super.key,
@@ -20,6 +21,7 @@ class FilterBar extends StatefulWidget {
     required this.onDateRangeChanged,
     required this.filterCategory,
     required this.onCategoryChanged,
+    this.onPickDate,
   });
 
   @override
@@ -51,7 +53,7 @@ class _FilterBarState extends State<FilterBar> {
       ('全部', 'all'), ('支出', 'expense'), ('收入', 'income'),
     ];
     final dateOptions = [
-      ('本月', 'month'), ('近7天', 'week'), ('全部', 'all'),
+      ('近7天', 'week'), ('本月', 'month'), ('全部', 'all'), ('日期', 'date'),
     ];
 
     // Gather relevant categories
@@ -85,7 +87,12 @@ class _FilterBarState extends State<FilterBar> {
             children: dateOptions.map((opt) => _buildChip(
               label: opt.$1,
               selected: widget.dateRange == opt.$2,
-              onTap: () => widget.onDateRangeChanged(opt.$2),
+              onTap: () {
+                widget.onDateRangeChanged(opt.$2);
+                if (opt.$2 == 'date') {
+                  widget.onPickDate?.call();
+                }
+              },
               theme: theme,
             )).toList(),
           ),

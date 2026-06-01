@@ -23,10 +23,15 @@ class _HomeScreenState extends State<HomeScreen> {
   String _chartMode = 'pie';
   bool _showLedgerPicker = false;
   int? _loadedLedgerId;
+  late int _displayYear;
+  late int _displayMonth;
 
   @override
   void initState() {
     super.initState();
+    final now = DateTime.now();
+    _displayYear = now.year;
+    _displayMonth = now.month;
     _loadChartMode();
     final ledgerProvider = context.read<LedgerProvider>();
     ledgerProvider.addListener(_onLedgerChanged);
@@ -67,10 +72,37 @@ class _HomeScreenState extends State<HomeScreen> {
     final ledger = context.read<LedgerProvider>().activeLedger;
     if (ledger != null) {
       await Future.wait([
-        context.read<BillProvider>().loadBills(ledger.id!),
+        context.read<BillProvider>().loadBills(ledger.id!,
+          year: _displayYear, month: _displayMonth),
         context.read<BudgetProvider>().loadBudgets(ledger.id!),
       ]);
     }
+  }
+
+  void _goToPrevMonth() {
+    setState(() {
+      if (_displayMonth == 1) {
+        _displayMonth = 12;
+        _displayYear--;
+      } else {
+        _displayMonth--;
+      }
+    });
+    _loadData();
+  }
+
+  void _goToNextMonth() {
+    final now = DateTime.now();
+    if (_displayYear == now.year && _displayMonth == now.month) return;
+    setState(() {
+      if (_displayMonth == 12) {
+        _displayMonth = 1;
+        _displayYear++;
+      } else {
+        _displayMonth++;
+      }
+    });
+    _loadData();
   }
 
   @override
@@ -82,7 +114,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final topSafe = MediaQuery.of(context).padding.top;
 
     final now = DateTime.now();
-    final monthName = getMonthName(now.month);
+    final isCurrentMonth = _displayYear == now.year && _displayMonth == now.month;
+    final monthName = getMonthName(_displayMonth);
     final hasAlerts = budgetProvider.alerts.any((a) => a.exceeded || a.nearLimit);
 
     return RefreshIndicator(
@@ -132,6 +165,56 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
+          // Month selector
+          GlassContainer(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                GestureDetector(
+                  onTap: _goToPrevMonth,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    child: Text('←', style: TextStyle(fontSize: 18, color: theme.primaryColor)),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime(_displayYear, _displayMonth),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                      helpText: '选择月份',
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _displayYear = picked.year;
+                        _displayMonth = picked.month;
+                      });
+                      _loadData();
+                    }
+                  },
+                  child: Text(
+                    '$_displayYear年 $monthName',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: isCurrentMonth ? null : _goToNextMonth,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    child: Text('→', style: TextStyle(
+                      fontSize: 18,
+                      color: isCurrentMonth ? theme.textSecondaryColor : theme.primaryColor,
+                    )),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           // Budget alerts
           if (hasAlerts)
             Container(
@@ -148,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Monthly Summary
           MonthlySummaryCard(
-            year: now.year,
+            year: _displayYear,
             month: monthName,
             totals: billProvider.monthlyTotals,
           ),
@@ -166,10 +249,33 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
 
           // Charts
-          if (_chartMode == 'pie')
-            CategoryPieChart(data: billProvider.categoryBreakdown),
-          if (_chartMode == 'bar')
+          if (_chartMode == 'pie') ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: CategoryPieChart(
+                    data: billProvider.categoryBreakdown,
+                    title: '支出分类',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: CategoryPieChart(
+                    data: billProvider.incomeBreakdown,
+                    title: '收入分类',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TrendLineChart(data: billProvider.dailyTotals),
+          ],
+          if (_chartMode == 'bar') ...[
             CategoryBarChart(data: billProvider.categoryBreakdown),
+            const SizedBox(height: 12),
+            TrendLineChart(data: billProvider.dailyTotals),
+          ],
           if (_chartMode == 'line')
             TrendLineChart(data: billProvider.dailyTotals),
         ],

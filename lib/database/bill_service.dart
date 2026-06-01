@@ -1,5 +1,6 @@
 import 'database_helper.dart';
 import '../models/bill.dart';
+import 'category_service.dart';
 
 class BillService {
   final _db = DatabaseHelper.instance;
@@ -141,17 +142,22 @@ class BillService {
     ''', [ledgerId, type, start, end]);
 
     final grandTotal = result.fold<double>(0, (sum, r) => sum + ((r['total'] as num).toDouble()));
-    final colors = _getCategoryColors();
 
-    return result.map((r) {
+    final breakdowns = <CategoryBreakdown>[];
+    for (final r in result) {
+      final category = r['category'] as String;
       final total = (r['total'] as num).toDouble();
-      return CategoryBreakdown(
-        category: r['category'] as String,
+      final color = CategoryService.categoryColorMap[category] ??
+          await CategoryService().getCategoryColor(category, type) ??
+          '#95A5A6';
+      breakdowns.add(CategoryBreakdown(
+        category: category,
         total: total,
         percentage: grandTotal > 0 ? (total / grandTotal) * 100 : 0,
-        color: colors[r['category']] ?? '#95A5A6',
-      );
-    }).toList();
+        color: color,
+      ));
+    }
+    return breakdowns;
   }
 
   Future<List<DailyTotal>> getDailyTotals(
@@ -230,11 +236,4 @@ class BillService {
     );
   }
 
-  Map<String, String> _getCategoryColors() {
-    return {
-      '餐饮': '#FF6384', '交通': '#36A2EB', '购物': '#FFCE56',
-      '娱乐': '#9966FF',
-      '工资': '#2ECC71', '转账': '#E67E22', '其他': '#C9CBCF',
-    };
-  }
 }

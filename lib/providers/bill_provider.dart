@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/bill.dart';
 import '../database/bill_service.dart';
 import '../database/category_service.dart';
+import '../utils/date_utils.dart';
 
 class BillProvider extends ChangeNotifier {
   final _billService = BillService();
@@ -16,6 +17,9 @@ class BillProvider extends ChangeNotifier {
   List<CategoryBreakdown> _categoryBreakdown = [];
   List<CategoryBreakdown> get categoryBreakdown => _categoryBreakdown;
 
+  List<CategoryBreakdown> _incomeBreakdown = [];
+  List<CategoryBreakdown> get incomeBreakdown => _incomeBreakdown;
+
   List<DailyTotal> _dailyTotals = [];
   List<DailyTotal> get dailyTotals => _dailyTotals;
 
@@ -29,14 +33,12 @@ class BillProvider extends ChangeNotifier {
 
     _bills = await _billService.getBills(ledgerId, limit: 200);
 
-    final lastDay = DateTime(y, m + 1, 0).day;
-    final mStr = m.toString().padLeft(2, '0');
-    final start = '$y-$mStr-01';
-    final end = '$y-$mStr-${lastDay.toString().padLeft(2, '0')}';
-
     _monthlyTotals = await _billService.getMonthlyTotals(ledgerId, y, m);
     _categoryBreakdown = await _billService.getCategoryBreakdown(ledgerId, y, m, 'expense');
-    _dailyTotals = await _billService.getDailyTotals(ledgerId, start, end);
+    _incomeBreakdown = await _billService.getCategoryBreakdown(ledgerId, y, m, 'income');
+    final trendStart = getDaysAgo(30);
+    final trendEnd = getToday();
+    _dailyTotals = await _billService.getDailyTotals(ledgerId, trendStart, trendEnd);
     _allTimeStats = await _billService.getAllTimeStats(ledgerId);
 
     notifyListeners();

@@ -20,11 +20,12 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   String _filterType = 'all';
-  String _dateRange = 'month';
+  String _dateRange = 'week';
   String _filterCategory = 'all';
   String _searchKeyword = '';
   final _searchController = TextEditingController();
   final _categoryService = CategoryService();
+  DateTime? _selectedDate;
 
   @override
   void dispose() {
@@ -44,6 +45,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     } else if (_dateRange == 'week') {
       startDate = getDaysAgo(7);
       endDate = getToday();
+    } else if (_dateRange == 'date' && _selectedDate != null) {
+      final d = _selectedDate!;
+      final ds = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      startDate = ds;
+      endDate = ds;
     }
 
     return provider.getFilteredBills(
@@ -53,6 +59,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
       category: _filterCategory == 'all' ? null : _filterCategory,
       keyword: _searchKeyword.isEmpty ? null : _searchKeyword,
     );
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      helpText: '选择查看日期',
+      cancelText: '取消',
+      confirmText: '确定',
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        _dateRange = 'date';
+      });
+    }
   }
 
   @override
@@ -105,6 +129,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           onDateRangeChanged: (v) => setState(() => _dateRange = v),
           filterCategory: _filterCategory,
           onCategoryChanged: (v) => setState(() => _filterCategory = v),
+          onPickDate: _pickDate,
         ),
 
         // Bill list

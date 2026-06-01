@@ -10,6 +10,8 @@ import '../database/backup_service.dart';
 import '../utils/currency_utils.dart';
 import '../utils/date_utils.dart';
 import '../widgets/glass_container.dart';
+import '../widgets/app_background.dart';
+import 'chart_color_screen.dart';
 
 class DataScreen extends StatefulWidget {
   const DataScreen({super.key});
@@ -29,6 +31,7 @@ class _DataScreenState extends State<DataScreen> {
   bool _autoBackup = false;
   String _autoBackupPeriod = 'weekly';
   int? _loadedLedgerId;
+  String _backupDir = '';
 
   @override
   void initState() {
@@ -62,6 +65,7 @@ class _DataScreenState extends State<DataScreen> {
     setState(() {
       _autoBackup = prefs.getBool('auto_backup') ?? false;
       _autoBackupPeriod = prefs.getString('auto_backup_period') ?? 'weekly';
+      _backupDir = prefs.getString('backup_dir') ?? '';
     });
   }
 
@@ -91,7 +95,29 @@ class _DataScreenState extends State<DataScreen> {
     return (start: null, end: null);
   }
 
+  String _defaultExportName() {
+    final now = DateTime.now();
+    final d = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    return '记一笔_账单导出_$d';
+  }
+
+  Future<void> _pickBackupDir() async {
+    String? dir = await FilePicker.platform.getDirectoryPath(dialogTitle: '选择备份保存位置');
+    if (dir != null) {
+      await _backupService.setBackupDirectory(dir);
+      setState(() => _backupDir = dir);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('备份位置已设置为: $dir'), duration: const Duration(seconds: 2)),
+        );
+      }
+    }
+  }
+
   Future<void> _createBackup() async {
+    // Auto-cleanup old backups first
+    await _backupService.cleanupOldBackups();
+
     setState(() { _loading = true; _loadingLabel = 'backup'; });
     try {
       final path = await _backupService.createBackup(
@@ -151,28 +177,16 @@ class _DataScreenState extends State<DataScreen> {
     final ledger = context.read<LedgerProvider>().activeLedger;
     if (ledger == null) return;
 
+    final name = await _showNameDialog(_defaultExportName());
+    if (name == null) return;
+
     setState(() { _loading = true; _loadingLabel = 'csv'; });
     try {
       final filter = _getDateFilter();
-      final path = await _backupService.exportToCsv(ledger.id!, startDate: filter.start, endDate: filter.end);
+      final path = await _backupService.exportToCsv(ledger.id!,
+        startDate: filter.start, endDate: filter.end, customName: name);
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('导出成功'),
-            content: const Text('CSV文件已生成'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('确定')),
-              TextButton(
-                onPressed: () {
-                  Share.shareXFiles([XFile(path)]);
-                  Navigator.pop(ctx);
-                },
-                child: const Text('分享'),
-              ),
-            ],
-          ),
-        );
+        _showExportSuccess(path);
       }
     } catch (e) {
       if (mounted) {
@@ -186,28 +200,16 @@ class _DataScreenState extends State<DataScreen> {
     final ledger = context.read<LedgerProvider>().activeLedger;
     if (ledger == null) return;
 
+    final name = await _showNameDialog(_defaultExportName());
+    if (name == null) return;
+
     setState(() { _loading = true; _loadingLabel = 'excel'; });
     try {
       final filter = _getDateFilter();
-      final path = await _backupService.exportToExcel(ledger.id!, startDate: filter.start, endDate: filter.end);
+      final path = await _backupService.exportToExcel(ledger.id!,
+        startDate: filter.start, endDate: filter.end, customName: name);
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('导出成功'),
-            content: const Text('Excel文件已生成'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('确定')),
-              TextButton(
-                onPressed: () {
-                  Share.shareXFiles([XFile(path)]);
-                  Navigator.pop(ctx);
-                },
-                child: const Text('分享'),
-              ),
-            ],
-          ),
-        );
+        _showExportSuccess(path);
       }
     } catch (e) {
       if (mounted) {
@@ -217,6 +219,56 @@ class _DataScreenState extends State<DataScreen> {
     setState(() { _loading = false; _loadingLabel = null; });
   }
 
+  Future<String?> _showNameDialog(String defaultName) async {
+    final controller = TextEditingController(text: defaultName);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('导出文件名'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: '输入文件名',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () {
+              final name = controller.text.trim();
+              Navigator.pop(ctx, name.isEmpty ? defaultName : name);
+            },
+            child: const Text('导出'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return result;
+  }
+
+  void _showExportSuccess(String path) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('导出成功'),
+        content: Text('文件已保存到:\n$path'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('确定')),
+          TextButton(
+            onPressed: () {
+              Share.shareXFiles([XFile(path)]);
+              Navigator.pop(ctx);
+            },
+            child: const Text('分享'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeProvider>();
@@ -224,198 +276,251 @@ class _DataScreenState extends State<DataScreen> {
     final topSafe = MediaQuery.of(context).padding.top;
     final stats = billProvider.allTimeStats;
 
-    return ListView(
-      padding: EdgeInsets.only(top: topSafe + 8, left: 16, right: 16, bottom: 90),
-      children: [
-        // Backup Section
-        GlassContainer(
-          padding: const EdgeInsets.all(20),
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('数据备份与恢复', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('加密备份', style: TextStyle(fontSize: 14, color: theme.textColor)),
-                  Switch(
-                    value: _encryptBackup,
-                    onChanged: (v) => setState(() => _encryptBackup = v),
-                    activeColor: theme.primaryColor,
-                  ),
-                ],
-              ),
-              if (_encryptBackup)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: TextField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    style: TextStyle(color: theme.textColor),
-                    decoration: InputDecoration(
-                      hintText: '设置备份密码',
-                      hintStyle: TextStyle(color: theme.textSecondaryColor),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: theme.borderColor),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: theme.borderColor),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: theme.primaryColor),
-                      ),
-                      filled: true,
-                      fillColor: theme.inputBgColor,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 8),
-              _buildButton(
-                label: '创建备份',
-                loading: _loadingLabel == 'backup',
-                color: theme.primaryColor,
-                textColor: Colors.white,
-                onTap: _loading ? null : _createBackup,
-              ),
-              const SizedBox(height: 8),
-              _buildOutlinedButton(
-                label: '从备份恢复',
-                loading: _loadingLabel == 'restore',
-                borderColor: theme.primaryColor,
-                textColor: theme.primaryColor,
-                onTap: _loading ? null : _restore,
-              ),
-            ],
-          ),
-        ),
+    final dirDisplay = _backupDir.isNotEmpty
+        ? _backupDir.split('/').last
+        : '未设置';
 
-        // Auto Backup Settings
-        GlassContainer(
-          padding: const EdgeInsets.all(20),
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('自动备份设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('自动备份', style: TextStyle(fontSize: 14, color: theme.textColor)),
-                  Switch(
-                    value: _autoBackup,
-                    onChanged: (v) {
-                      setState(() => _autoBackup = v);
-                      _saveSettings();
-                    },
-                    activeColor: theme.primaryColor,
-                  ),
-                ],
-              ),
-              if (_autoBackup) ...[
+    return AppBackground(
+      child: ListView(
+        padding: EdgeInsets.only(top: topSafe + 8, left: 16, right: 16, bottom: 90),
+        children: [
+          // Backup Section
+          GlassContainer(
+            padding: const EdgeInsets.all(20),
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('数据备份与恢复', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
                 const SizedBox(height: 12),
-                Text('备份周期', style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
+                // Backup location
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('存储位置', style: TextStyle(fontSize: 14, color: theme.textColor)),
+                          const SizedBox(height: 2),
+                          Text(dirDisplay, style: TextStyle(fontSize: 12, color: theme.textSecondaryColor)),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _pickBackupDir,
+                      child: Text('更改', style: TextStyle(color: theme.primaryColor)),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildChip('每日', 'daily'),
+                    Text('加密备份', style: TextStyle(fontSize: 14, color: theme.textColor)),
+                    Switch(
+                      value: _encryptBackup,
+                      onChanged: (v) => setState(() => _encryptBackup = v),
+                      activeColor: theme.primaryColor,
+                    ),
+                  ],
+                ),
+                if (_encryptBackup)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      style: TextStyle(color: theme.textColor),
+                      decoration: InputDecoration(
+                        hintText: '设置备份密码',
+                        hintStyle: TextStyle(color: theme.textSecondaryColor),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: theme.borderColor),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: theme.borderColor),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: theme.primaryColor),
+                        ),
+                        filled: true,
+                        fillColor: theme.inputBgColor,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                _buildButton(
+                  label: '创建备份',
+                  loading: _loadingLabel == 'backup',
+                  color: theme.primaryColor,
+                  textColor: Colors.white,
+                  onTap: _loading ? null : _createBackup,
+                ),
+                const SizedBox(height: 8),
+                _buildOutlinedButton(
+                  label: '从备份恢复',
+                  loading: _loadingLabel == 'restore',
+                  borderColor: theme.primaryColor,
+                  textColor: theme.primaryColor,
+                  onTap: _loading ? null : _restore,
+                ),
+              ],
+            ),
+          ),
+
+          // Auto Backup Settings
+          GlassContainer(
+            padding: const EdgeInsets.all(20),
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('自动备份设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('自动备份', style: TextStyle(fontSize: 14, color: theme.textColor)),
+                    Switch(
+                      value: _autoBackup,
+                      onChanged: (v) {
+                        setState(() => _autoBackup = v);
+                        _saveSettings();
+                      },
+                      activeColor: theme.primaryColor,
+                    ),
+                  ],
+                ),
+                if (_autoBackup) ...[
+                  const SizedBox(height: 12),
+                  Text('备份周期', style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildChip('每日', 'daily'),
+                      const SizedBox(width: 8),
+                      _buildChip('每周', 'weekly'),
+                      const SizedBox(width: 8),
+                      _buildChip('每月', 'monthly'),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text('开启后，APP将在备份周期内自动创建备份文件',
+                    style: TextStyle(fontSize: 12, color: theme.textSecondaryColor)),
+                ],
+              ],
+            ),
+          ),
+
+          // Export Section
+          GlassContainer(
+            padding: const EdgeInsets.all(20),
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('数据导出', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
+                const SizedBox(height: 12),
+                Text('导出时间范围', style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    _buildChip('本月', 'month'),
                     const SizedBox(width: 8),
-                    _buildChip('每周', 'weekly'),
+                    _buildChip('近7天', 'week'),
                     const SizedBox(width: 8),
-                    _buildChip('每月', 'monthly'),
+                    _buildChip('全部', 'all'),
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text('开启后，APP将在备份周期内自动创建加密备份文件',
-                  style: TextStyle(fontSize: 12, color: theme.textSecondaryColor)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildButton(
+                        label: '导出 CSV',
+                        loading: _loadingLabel == 'csv',
+                        color: theme.incomeColor,
+                        textColor: Colors.white,
+                        onTap: _loading ? null : _exportCsv,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildButton(
+                        label: '导出 Excel',
+                        loading: _loadingLabel == 'excel',
+                        color: theme.primaryColor,
+                        textColor: Colors.white,
+                        onTap: _loading ? null : _exportExcel,
+                      ),
+                    ),
+                  ],
+                ),
               ],
-            ],
+            ),
           ),
-        ),
 
-        // Export Section
-        GlassContainer(
-          padding: const EdgeInsets.all(20),
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('数据导出', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _buildChip('本月', 'month'),
-                  const SizedBox(width: 8),
-                  _buildChip('近7天', 'week'),
-                  const SizedBox(width: 8),
-                  _buildChip('全部', 'all'),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildButton(
-                      label: '导出 CSV',
-                      loading: _loadingLabel == 'csv',
-                      color: theme.incomeColor,
-                      textColor: Colors.white,
-                      onTap: _loading ? null : _exportCsv,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildButton(
-                      label: '导出 Excel',
-                      loading: _loadingLabel == 'excel',
-                      color: theme.primaryColor,
-                      textColor: Colors.white,
-                      onTap: _loading ? null : _exportExcel,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+          // Chart Color Settings
+          GlassContainer(
+            padding: const EdgeInsets.all(20),
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('图表配色设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
+                const SizedBox(height: 8),
+                Text('自定义饼图分类颜色和趋势图线条颜色',
+                  style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
+                const SizedBox(height: 12),
+                _buildOutlinedButton(
+                  label: '打开配色设置',
+                  loading: false,
+                  borderColor: theme.primaryColor,
+                  textColor: theme.primaryColor,
+                  onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const ChartColorScreen())),
+                ),
+              ],
+            ),
           ),
-        ),
 
-        // Cumulative Stats
-        GlassContainer(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('累计总览', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _buildStat('${formatCurrency(stats?.totalIncome ?? 0)}', '总收入', theme.incomeColor, theme),
-                  _buildStat('${formatCurrency(stats?.totalExpense ?? 0)}', '总支出', theme.expenseColor, theme),
-                  _buildStat(
-                    '${formatCurrency((stats?.balance ?? 0).abs())}',
-                    '总结余',
-                    (stats?.balance ?? 0) >= 0 ? theme.incomeColor : theme.expenseColor,
-                    theme,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  _buildStat('${stats?.recordCount ?? 0}', '总记录', theme.textColor, theme),
-                  _buildStat(stats?.topCategory ?? '-', '最大支出类', theme.textColor, theme),
-                  _buildStat(formatCurrency(stats?.avgExpense ?? 0), '笔均支出', theme.textColor, theme),
-                ],
-              ),
-            ],
+          // Cumulative Stats
+          GlassContainer(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('累计总览', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _buildStat('${formatCurrency(stats?.totalIncome ?? 0)}', '总收入', theme.incomeColor, theme),
+                    _buildStat('${formatCurrency(stats?.totalExpense ?? 0)}', '总支出', theme.expenseColor, theme),
+                    _buildStat(
+                      '${formatCurrency((stats?.balance ?? 0).abs())}',
+                      '总结余',
+                      (stats?.balance ?? 0) >= 0 ? theme.incomeColor : theme.expenseColor,
+                      theme,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    _buildStat('${stats?.recordCount ?? 0}', '总记录', theme.textColor, theme),
+                    _buildStat(stats?.topCategory ?? '-', '最大支出类', theme.textColor, theme),
+                    _buildStat(formatCurrency(stats?.avgExpense ?? 0), '笔均支出', theme.textColor, theme),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

@@ -31,7 +31,7 @@ class _LedgerManageScreenState extends State<LedgerManageScreen> {
   Future<void> _create() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入账本名称')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入账本名称'), duration: Duration(seconds: 1)));
       return;
     }
     await context.read<LedgerProvider>().createLedger(name, color: _selectedColor);
@@ -68,10 +68,12 @@ class _LedgerManageScreenState extends State<LedgerManageScreen> {
     final ledgerProvider = context.watch<LedgerProvider>();
     final topSafe = MediaQuery.of(context).padding.top;
 
-    return AppBackground(
-      child: ListView(
-        padding: EdgeInsets.only(top: topSafe, left: 16, right: 16, bottom: 100),
-      children: [
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: ListView(
+          padding: EdgeInsets.only(top: topSafe, left: 16, right: 16, bottom: 100),
+          children: [
         // Header
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -79,7 +81,10 @@ class _LedgerManageScreenState extends State<LedgerManageScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+  ScaffoldMessenger.of(context).clearSnackBars();
+  Navigator.pop(context);
+},
                 child: Text('← 返回', style: TextStyle(fontSize: 16, color: theme.primaryColor)),
               ),
               Text('账本管理', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: theme.textColor)),
@@ -235,8 +240,9 @@ class _LedgerManageScreenState extends State<LedgerManageScreen> {
           );
         }),
         const SizedBox(height: 60),
-      ],
+          ],
+        ),
       ),
-    );
+      );
+    }
   }
-}
