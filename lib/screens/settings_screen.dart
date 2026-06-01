@@ -165,7 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('版本', style: TextStyle(fontSize: 14, color: theme.textSecondaryColor)),
-                  Text('1.1.0', style: TextStyle(fontSize: 14, color: theme.textColor)),
+                  Text('1.1.2', style: TextStyle(fontSize: 14, color: theme.textColor)),
                 ],
               ),
             ],

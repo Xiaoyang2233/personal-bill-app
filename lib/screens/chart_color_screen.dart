@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/theme_provider.dart';
 import '../database/category_service.dart';
 import '../models/category.dart';
+import '../utils/chart_color_utils.dart';
 import '../widgets/glass_container.dart';
 import '../widgets/app_background.dart';
 
@@ -55,6 +56,7 @@ class _ChartColorScreenState extends State<ChartColorScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('chart_color_$category', color);
     setState(() => _customColors[category] = color);
+    await ChartColorUtils.reload();
   }
 
   Future<void> _setTrendColor(String key, String color) async {
@@ -64,6 +66,7 @@ class _ChartColorScreenState extends State<ChartColorScreen> {
       if (key == 'chart_trend_income') _trendIncomeColor = color;
       if (key == 'chart_trend_expense') _trendExpenseColor = color;
     });
+    await ChartColorUtils.reload();
   }
 
   Future<void> _resetAll() async {
@@ -78,6 +81,7 @@ class _ChartColorScreenState extends State<ChartColorScreen> {
       _trendIncomeColor = '#4ECDC4';
       _trendExpenseColor = '#FF6B6B';
     });
+    await ChartColorUtils.reload();
   }
 
   String _effectiveColor(CustomCategory cat) {

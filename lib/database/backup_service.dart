@@ -5,39 +5,30 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:csv/csv.dart';
 import 'package:excel/excel.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'database_helper.dart';
 import 'bill_service.dart';
+import 'storage_channel.dart';
+
+class BackupResult {
+  final String path;
+  final String subFolder;
+  final String fileName;
+  BackupResult({required this.path, required this.subFolder, required this.fileName});
+}
 
 class BackupService {
   final _db = DatabaseHelper.instance;
   final _billService = BillService();
 
-  Future<Directory> _getBackupDirectory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedPath = prefs.getString('backup_dir');
-    if (savedPath != null) {
-      final dir = Directory(savedPath);
-      if (await dir.exists()) return dir;
-    }
-    try {
-      final downloads = await getDownloadsDirectory();
-      if (downloads != null) return downloads;
-    } catch (_) {}
-    final docDir = await getApplicationDocumentsDirectory();
-    return docDir;
-  }
-
-  Future<void> setBackupDirectory(String path) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('backup_dir', path);
-  }
-
   String _formatDate(DateTime d) {
     return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
-  Future<String> createBackup({String? password}) async {
+  String _formatDateTime(DateTime d) {
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}_${d.hour.toString().padLeft(2, '0')}-${d.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<BackupResult> createBackup({String? password}) async {
     final dbPath = await _db.getDatabasePath();
     final backupFile = await _copyDatabase(dbPath);
     final bytes = await backupFile.readAsBytes();
@@ -47,11 +38,15 @@ class BackupService {
       data = _xorEncrypt(bytes, password);
     }
 
-    final dir = await _getBackupDirectory();
-    final date = _formatDate(DateTime.now());
-    final backupPath = p.join(dir.path, '记一笔_备份_$date.db');
-    await File(backupPath).writeAsBytes(data);
-    return backupPath;
+    final date = _formatDateTime(DateTime.now());
+    final fileName = '记一笔_备份_$date.db';
+    final subFolder = '备份';
+
+    await StorageChannel.saveToDownloads(subFolder, fileName, data);
+
+    // Build the path for display / open
+    final filePath = '/storage/emulated/0/Download/记一笔/$subFolder/$fileName';
+    return BackupResult(path: filePath, subFolder: subFolder, fileName: fileName);
   }
 
   Future<void> restoreBackup(String filePath, {String? password}) async {
@@ -84,7 +79,7 @@ class BackupService {
     return result;
   }
 
-  Future<String> exportToCsv(int ledgerId, {String? startDate, String? endDate, String? customName}) async {
+  Future<BackupResult> exportToCsv(int ledgerId, {String? startDate, String? endDate, String? customName}) async {
     final bills = await _billService.getBills(ledgerId, startDate: startDate, endDate: endDate);
 
     final rows = <List<String>>[
@@ -101,14 +96,18 @@ class BackupService {
     }
 
     final csvData = const ListToCsvConverter().convert(rows);
-    final dir = await _getBackupDirectory();
     final name = customName ?? '记一笔_账单导出_${_formatDate(DateTime.now())}';
-    final filePath = p.join(dir.path, '$name.csv');
-    await File(filePath).writeAsString(csvData, encoding: utf8);
-    return filePath;
+    final fileName = '$name.csv';
+    final subFolder = '导出';
+
+    final bytes = Uint8List.fromList(utf8.encode(csvData));
+    await StorageChannel.saveToDownloads(subFolder, fileName, bytes);
+
+    final filePath = '/storage/emulated/0/Download/记一笔/$subFolder/$fileName';
+    return BackupResult(path: filePath, subFolder: subFolder, fileName: fileName);
   }
 
-  Future<String> exportToExcel(int ledgerId, {String? startDate, String? endDate, String? customName}) async {
+  Future<BackupResult> exportToExcel(int ledgerId, {String? startDate, String? endDate, String? customName}) async {
     final bills = await _billService.getBills(ledgerId, startDate: startDate, endDate: endDate);
 
     final excel = Excel.createExcel();
@@ -116,7 +115,6 @@ class BackupService {
 
     final thinBorder = Border(borderStyle: BorderStyle.Thin);
 
-    // Header style
     final headerStyle = CellStyle(
       bold: true,
       fontColorHex: ExcelColor.fromHexString('FFFFFFFF'),
@@ -129,7 +127,6 @@ class BackupService {
       bottomBorder: thinBorder,
     );
 
-    // Income row style
     final incomeStyle = CellStyle(
       fontColorHex: ExcelColor.fromHexString('FF27AE60'),
       leftBorder: thinBorder,
@@ -138,7 +135,6 @@ class BackupService {
       bottomBorder: thinBorder,
     );
 
-    // Expense row style
     final expenseStyle = CellStyle(
       fontColorHex: ExcelColor.fromHexString('FFE74C3C'),
       leftBorder: thinBorder,
@@ -147,7 +143,6 @@ class BackupService {
       bottomBorder: thinBorder,
     );
 
-    // Header row
     final headers = ['日期', '类型', '分类', '金额', '备注'];
     for (int col = 0; col < headers.length; col++) {
       final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
@@ -155,7 +150,6 @@ class BackupService {
       cell.value = TextCellValue(headers[col]);
     }
 
-    // Data rows
     for (int i = 0; i < bills.length; i++) {
       final bill = bills[i];
       final isIncome = bill.type == 'income';
@@ -177,7 +171,6 @@ class BackupService {
       }
     }
 
-    // Column widths
     sheet.setColumnWidth(0, 14);
     sheet.setColumnWidth(1, 8);
     sheet.setColumnWidth(2, 10);
@@ -185,27 +178,34 @@ class BackupService {
     sheet.setColumnWidth(4, 28);
 
     final bytes = excel.encode()!;
-    final dir = await _getBackupDirectory();
     final name = customName ?? '记一笔_账单导出_${_formatDate(DateTime.now())}';
-    final filePath = p.join(dir.path, '$name.xlsx');
-    await File(filePath).writeAsBytes(bytes);
-    return filePath;
+    final fileName = '$name.xlsx';
+    final subFolder = '导出';
+
+    await StorageChannel.saveToDownloads(subFolder, fileName, bytes);
+
+    final filePath = '/storage/emulated/0/Download/记一笔/$subFolder/$fileName';
+    return BackupResult(path: filePath, subFolder: subFolder, fileName: fileName);
   }
 
   Future<void> cleanupOldBackups() async {
-    final dir = await _getBackupDirectory();
-    if (!await dir.exists()) return;
-    final threshold = DateTime.now().subtract(const Duration(days: 30));
-    await for (final entity in dir.list()) {
-      if (entity is File) {
-        final name = p.basename(entity.path);
-        if (name.startsWith('记一笔_备份_') && (name.endsWith('.db') || name.endsWith('.fin'))) {
-          final stat = await entity.stat();
-          if (stat.modified.isBefore(threshold)) {
-            await entity.delete();
+    // Cleanup is handled by the system; app-private backups can still be cleaned
+    try {
+      final docDir = await getApplicationDocumentsDirectory();
+      final backupDir = Directory(p.join(docDir.path, 'backups'));
+      if (!await backupDir.exists()) return;
+      final threshold = DateTime.now().subtract(const Duration(days: 30));
+      await for (final entity in backupDir.list()) {
+        if (entity is File) {
+          final name = p.basename(entity.path);
+          if (name.startsWith('记一笔_备份_') && (name.endsWith('.db') || name.endsWith('.fin'))) {
+            final stat = await entity.stat();
+            if (stat.modified.isBefore(threshold)) {
+              await entity.delete();
+            }
           }
         }
       }
-    }
+    } catch (_) {}
   }
 }

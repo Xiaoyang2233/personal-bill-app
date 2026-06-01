@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/theme_provider.dart';
 import '../providers/bill_provider.dart';
 import '../providers/ledger_provider.dart';
 import '../database/backup_service.dart';
+import '../database/storage_channel.dart';
 import '../utils/currency_utils.dart';
 import '../utils/date_utils.dart';
 import '../widgets/glass_container.dart';
@@ -31,12 +31,12 @@ class _DataScreenState extends State<DataScreen> {
   bool _autoBackup = false;
   String _autoBackupPeriod = 'weekly';
   int? _loadedLedgerId;
-  String _backupDir = '';
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    _requestPermission();
     final ledgerProvider = context.read<LedgerProvider>();
     ledgerProvider.addListener(_onLedgerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadDataIfReady());
@@ -60,12 +60,15 @@ class _DataScreenState extends State<DataScreen> {
     }
   }
 
+  Future<void> _requestPermission() async {
+    await StorageChannel.requestStoragePermission();
+  }
+
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _autoBackup = prefs.getBool('auto_backup') ?? false;
       _autoBackupPeriod = prefs.getString('auto_backup_period') ?? 'weekly';
-      _backupDir = prefs.getString('backup_dir') ?? '';
     });
   }
 
@@ -101,46 +104,92 @@ class _DataScreenState extends State<DataScreen> {
     return '记一笔_账单导出_$d';
   }
 
-  Future<void> _pickBackupDir() async {
-    String? dir = await FilePicker.platform.getDirectoryPath(dialogTitle: '选择备份保存位置');
-    if (dir != null) {
-      await _backupService.setBackupDirectory(dir);
-      setState(() => _backupDir = dir);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('备份位置已设置为: $dir'), duration: const Duration(seconds: 2)),
-        );
-      }
-    }
+  void _showBackupHelp() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('数据备份说明'),
+        content: const SingleChildScrollView(
+          child: Text(
+            '1. 备份文件保存到手机公共下载目录：\n   /Download/记一笔/备份/\n\n'
+            '2. 导出文件保存到：\n   /Download/记一笔/导出/\n\n'
+            '3. 备份文件名格式：记一笔_备份_2026-06-01_16-26.db\n\n'
+            '4. 开启「加密备份」可为备份文件设置密码保护\n\n'
+            '5. 自动备份功能会在设定周期内自动创建备份\n\n'
+            '6. 可在文件管理器的Download/记一笔目录中找到所有文件',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('知道了')),
+        ],
+      ),
+    );
+  }
+
+  void _showBackupSuccess(BackupResult result) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('备份成功'),
+        content: Text('文件已保存到:\n${result.path}'),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await StorageChannel.openFile(result.path);
+            },
+            child: const Text('打开文件'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await StorageChannel.openFolder('content://com.android.externalstorage.documents/document/primary%3ADownload%2F记一笔');
+            },
+            child: const Text('打开文件夹'),
+          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('关闭')),
+        ],
+      ),
+    );
+  }
+
+  void _showExportSuccess(BackupResult result) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('导出成功'),
+        content: Text('文件已保存到:\n${result.path}'),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await StorageChannel.openFile(result.path);
+            },
+            child: const Text('打开文件'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await StorageChannel.openFolder('content://com.android.externalstorage.documents/document/primary%3ADownload%2F记一笔');
+            },
+            child: const Text('打开文件夹'),
+          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('关闭')),
+        ],
+      ),
+    );
   }
 
   Future<void> _createBackup() async {
-    // Auto-cleanup old backups first
     await _backupService.cleanupOldBackups();
 
     setState(() { _loading = true; _loadingLabel = 'backup'; });
     try {
-      final path = await _backupService.createBackup(
+      final result = await _backupService.createBackup(
         password: _encryptBackup ? _passwordController.text : null,
       );
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('备份成功'),
-            content: Text('备份文件已保存到:\n$path'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('确定')),
-              TextButton(
-                onPressed: () {
-                  Share.shareXFiles([XFile(path)]);
-                  Navigator.pop(ctx);
-                },
-                child: const Text('分享'),
-              ),
-            ],
-          ),
-        );
+        _showBackupSuccess(result);
       }
     } catch (e) {
       if (mounted) {
@@ -183,10 +232,10 @@ class _DataScreenState extends State<DataScreen> {
     setState(() { _loading = true; _loadingLabel = 'csv'; });
     try {
       final filter = _getDateFilter();
-      final path = await _backupService.exportToCsv(ledger.id!,
+      final result = await _backupService.exportToCsv(ledger.id!,
         startDate: filter.start, endDate: filter.end, customName: name);
       if (mounted) {
-        _showExportSuccess(path);
+        _showExportSuccess(result);
       }
     } catch (e) {
       if (mounted) {
@@ -206,10 +255,10 @@ class _DataScreenState extends State<DataScreen> {
     setState(() { _loading = true; _loadingLabel = 'excel'; });
     try {
       final filter = _getDateFilter();
-      final path = await _backupService.exportToExcel(ledger.id!,
+      final result = await _backupService.exportToExcel(ledger.id!,
         startDate: filter.start, endDate: filter.end, customName: name);
       if (mounted) {
-        _showExportSuccess(path);
+        _showExportSuccess(result);
       }
     } catch (e) {
       if (mounted) {
@@ -249,36 +298,12 @@ class _DataScreenState extends State<DataScreen> {
     return result;
   }
 
-  void _showExportSuccess(String path) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('导出成功'),
-        content: Text('文件已保存到:\n$path'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('确定')),
-          TextButton(
-            onPressed: () {
-              Share.shareXFiles([XFile(path)]);
-              Navigator.pop(ctx);
-            },
-            child: const Text('分享'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeProvider>();
     final billProvider = context.watch<BillProvider>();
     final topSafe = MediaQuery.of(context).padding.top;
     final stats = billProvider.allTimeStats;
-
-    final dirDisplay = _backupDir.isNotEmpty
-        ? _backupDir.split('/').last
-        : '未设置';
 
     return AppBackground(
       child: ListView(
@@ -291,29 +316,22 @@ class _DataScreenState extends State<DataScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('数据备份与恢复', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
-                const SizedBox(height: 12),
-                // Backup location
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('存储位置', style: TextStyle(fontSize: 14, color: theme.textColor)),
-                          const SizedBox(height: 2),
-                          Text(dirDisplay, style: TextStyle(fontSize: 12, color: theme.textSecondaryColor)),
-                        ],
+                    Text('数据备份与恢复', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
+                    GestureDetector(
+                      onTap: _showBackupHelp,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(Icons.help_outline, size: 20, color: theme.textSecondaryColor),
                       ),
-                    ),
-                    TextButton(
-                      onPressed: _pickBackupDir,
-                      child: Text('更改', style: TextStyle(color: theme.primaryColor)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
+                Text('备份保存到: Download/记一笔/备份/', style: TextStyle(fontSize: 12, color: theme.textSecondaryColor)),
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -424,6 +442,8 @@ class _DataScreenState extends State<DataScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text('数据导出', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.textColor)),
+                const SizedBox(height: 8),
+                Text('导出保存到: Download/记一笔/导出/', style: TextStyle(fontSize: 12, color: theme.textSecondaryColor)),
                 const SizedBox(height: 12),
                 Text('导出时间范围', style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
                 const SizedBox(height: 6),
@@ -498,10 +518,10 @@ class _DataScreenState extends State<DataScreen> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _buildStat('${formatCurrency(stats?.totalIncome ?? 0)}', '总收入', theme.incomeColor, theme),
-                    _buildStat('${formatCurrency(stats?.totalExpense ?? 0)}', '总支出', theme.expenseColor, theme),
+                    _buildStat(formatCurrency(stats?.totalIncome ?? 0), '总收入', theme.incomeColor, theme),
+                    _buildStat(formatCurrency(stats?.totalExpense ?? 0), '总支出', theme.expenseColor, theme),
                     _buildStat(
-                      '${formatCurrency((stats?.balance ?? 0).abs())}',
+                      formatCurrency((stats?.balance ?? 0).abs()),
                       '总结余',
                       (stats?.balance ?? 0) >= 0 ? theme.incomeColor : theme.expenseColor,
                       theme,

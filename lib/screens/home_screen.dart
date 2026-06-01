@@ -5,12 +5,14 @@ import '../providers/theme_provider.dart';
 import '../providers/bill_provider.dart';
 import '../providers/ledger_provider.dart';
 import '../providers/budget_provider.dart';
+import '../utils/currency_utils.dart';
 import '../widgets/monthly_summary_card.dart';
 import '../widgets/category_pie_chart.dart';
 import '../widgets/category_bar_chart.dart';
 import '../widgets/trend_line_chart.dart';
 import '../widgets/glass_container.dart';
 import '../utils/date_utils.dart';
+import 'budget_manage_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _chartMode = 'pie';
   bool _showLedgerPicker = false;
+  bool _showAllBudgets = false;
   int? _loadedLedgerId;
   late int _displayYear;
   late int _displayMonth;
@@ -236,6 +239,9 @@ class _HomeScreenState extends State<HomeScreen> {
             totals: billProvider.monthlyTotals,
           ),
 
+          // Budget Warning Cards
+          ..._buildBudgetWarningCards(budgetProvider, theme),
+
           // Chart mode toggle
           Row(
             children: [
@@ -249,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
 
           // Charts
-          if (_chartMode == 'pie') ...[
+          if (_chartMode == 'pie')
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -268,19 +274,118 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            TrendLineChart(data: billProvider.dailyTotals),
-          ],
-          if (_chartMode == 'bar') ...[
+          if (_chartMode == 'bar')
             CategoryBarChart(data: billProvider.categoryBreakdown),
-            const SizedBox(height: 12),
-            TrendLineChart(data: billProvider.dailyTotals),
-          ],
           if (_chartMode == 'line')
             TrendLineChart(data: billProvider.dailyTotals),
         ],
       ),
     );
+  }
+
+  List<Widget> _buildBudgetWarningCards(BudgetProvider budgetProvider, ThemeProvider theme) {
+    final budgets = budgetProvider.budgets;
+    if (budgets.isEmpty) return [];
+
+    final cards = <Widget>[];
+    final displayBudgets = _showAllBudgets ? budgets : budgets.take(2).toList();
+
+    for (final budget in displayBudgets) {
+      final alert = budgetProvider.alerts.where((a) => a.category == budget.category).firstOrNull;
+      final spent = alert?.spent ?? 0.0;
+      final percentage = budget.amount > 0 ? spent / budget.amount : 0.0;
+      final isOver = percentage >= 1.0;
+      final isNear = percentage >= 0.8;
+
+      Color progressColor;
+      if (isOver) {
+        progressColor = theme.dangerColor;
+      } else if (isNear) {
+        progressColor = theme.warningColor;
+      } else {
+        progressColor = theme.successColor;
+      }
+
+      cards.add(
+        GlassContainer(
+          padding: const EdgeInsets.all(14),
+          margin: const EdgeInsets.only(bottom: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(budget.category, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.textColor)),
+                  Text('${formatCurrency(spent)} / ${formatCurrency(budget.amount)}',
+                    style: TextStyle(fontSize: 13, color: theme.textColor)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: percentage.clamp(0.0, 1.0),
+                  backgroundColor: theme.inputBgColor,
+                  color: progressColor,
+                  minHeight: 6,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('${(percentage * 100).round()}%',
+                    style: TextStyle(fontSize: 12, color: isOver ? theme.dangerColor : theme.textSecondaryColor)),
+                  if (isOver || isNear)
+                    Text('⚠️ ${isOver ? '已超支' : '即将超支'}',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.dangerColor)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Add expand/collapse button if more than 2 budgets
+    if (budgets.length > 2) {
+      cards.add(
+        GestureDetector(
+          onTap: () => setState(() => _showAllBudgets = !_showAllBudgets),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(_showAllBudgets ? '收起' : '展开全部',
+                  style: TextStyle(fontSize: 13, color: theme.primaryColor)),
+                Icon(_showAllBudgets ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  size: 18, color: theme.primaryColor),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Add "Budget Management" shortcut at the end
+    cards.add(
+      GestureDetector(
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetManageScreen())),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text('预算管理 →', style: TextStyle(fontSize: 13, color: theme.primaryColor)),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return cards;
   }
 
   Widget _buildToggle(String label, String mode, ThemeProvider theme) {

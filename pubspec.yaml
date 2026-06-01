@@ -1,7 +1,7 @@
 name: finance_app
 description: 个人账单记账APP - 纯离线Flutter应用
 publish_to: 'none'
-version: 1.1.0+2
+version: 1.1.2+4
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -32,8 +32,11 @@ flutter:
   uses-material-design: true
 
 flutter_launcher_icons:
-  android: true
+  android:
+    generate: true
+    image_path: "应用图标人物.png"
+    adaptive_icon_background: null
+    adaptive_icon_foreground: "应用图标人物.png"
   ios: true
-  image_path: "应用图标.png"
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "应用图标.png"
+  image_path: "应用图标人物.png"
+  remove_alpha_ios: false

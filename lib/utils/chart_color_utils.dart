@@ -18,6 +18,10 @@ class ChartColorUtils {
     _loaded = true;
   }
 
+  static Future<void> reload() async {
+    await load();
+  }
+
   static void ensureLoaded() {
     if (!_loaded) {
       SharedPreferences.getInstance().then((prefs) {

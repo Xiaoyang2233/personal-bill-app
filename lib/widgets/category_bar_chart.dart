@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/bill.dart';
 import '../utils/currency_utils.dart';
+import '../utils/chart_color_utils.dart';
 import 'glass_container.dart';
 
 class CategoryBarChart extends StatelessWidget {
@@ -79,7 +80,8 @@ class CategoryBarChart extends StatelessWidget {
                 ),
                 borderData: FlBorderData(show: false),
                 barGroups: display.asMap().entries.map((e) {
-                  final color = Color(int.parse(e.value.color.replaceAll('#', '0xFF')));
+                  final c = ChartColorUtils.getCategoryColor(e.value.category, e.value.color);
+                  final color = Color(int.parse(c.replaceAll('#', '0xFF')));
                   return BarChartGroupData(
                     x: e.key,
                     barRods: [BarChartRodData(
@@ -95,7 +97,8 @@ class CategoryBarChart extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           ...display.map((d) {
-            final color = Color(int.parse(d.color.replaceAll('#', '0xFF')));
+            final c = ChartColorUtils.getCategoryColor(d.category, d.color);
+            final color = Color(int.parse(c.replaceAll('#', '0xFF')));
             return Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Row(
