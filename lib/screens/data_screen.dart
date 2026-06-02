@@ -21,7 +21,7 @@ class DataScreen extends StatefulWidget {
   State<DataScreen> createState() => _DataScreenState();
 }
 
-class _DataScreenState extends State<DataScreen> {
+class _DataScreenState extends State<DataScreen> with AutomaticKeepAliveClientMixin {
   final _backupService = BackupService();
   bool _encryptBackup = false;
   final _passwordController = TextEditingController();
@@ -33,6 +33,9 @@ class _DataScreenState extends State<DataScreen> {
   String _autoBackupPeriod = 'weekly';
   int? _loadedLedgerId;
   String _nextBackupCountdown = '';
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -385,6 +388,7 @@ class _DataScreenState extends State<DataScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = context.watch<ThemeProvider>();
     final billProvider = context.watch<BillProvider>();
     final topSafe = MediaQuery.of(context).padding.top;

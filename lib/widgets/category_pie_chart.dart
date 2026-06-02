@@ -28,56 +28,58 @@ class CategoryPieChart extends StatelessWidget {
 
     final chartData = data.take(8).toList();
 
-    return GlassContainer(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.textColor)),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 200,
-            child: PieChart(
-              PieChartData(
-                sections: chartData.map((d) {
-                  final c = ChartColorUtils.getCategoryColor(d.category, d.color);
-                  final color = Color(int.parse(c.replaceAll('#', '0xFF')));
-                  return PieChartSectionData(
-                    value: d.total,
-                    title: '${d.percentage.toStringAsFixed(0)}%',
-                    color: color,
-                    titleStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-                    radius: 60,
-                  );
-                }).toList(),
-                centerSpaceRadius: 30,
-                sectionsSpace: 2,
+    return RepaintBoundary(
+      child: GlassContainer(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.textColor)),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 200,
+              child: PieChart(
+                PieChartData(
+                  sections: chartData.map((d) {
+                    final c = ChartColorUtils.getCategoryColor(d.category, d.color);
+                    final color = Color(int.parse(c.replaceAll('#', '0xFF')));
+                    return PieChartSectionData(
+                      value: d.total,
+                      title: '${d.percentage.toStringAsFixed(0)}%',
+                      color: color,
+                      titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                      radius: 60,
+                    );
+                  }).toList(),
+                  centerSpaceRadius: 30,
+                  sectionsSpace: 2,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          ...chartData.map((d) {
-            final c = ChartColorUtils.getCategoryColor(d.category, d.color);
-            final color = Color(int.parse(c.replaceAll('#', '0xFF')));
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(d.category, style: TextStyle(fontSize: 13, color: theme.textColor))),
-                  Text(formatCurrency(d.total), style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 50,
-                    child: Text('(${d.percentage.toStringAsFixed(1)}%)',
-                      textAlign: TextAlign.right,
-                      style: TextStyle(fontSize: 12, color: theme.textSecondaryColor)),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
+            const SizedBox(height: 12),
+            ...chartData.map((d) {
+              final c = ChartColorUtils.getCategoryColor(d.category, d.color);
+              final color = Color(int.parse(c.replaceAll('#', '0xFF')));
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(d.category, style: TextStyle(fontSize: 13, color: theme.textColor))),
+                    Text(formatCurrency(d.total), style: TextStyle(fontSize: 13, color: theme.textSecondaryColor)),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 50,
+                      child: Text('(${d.percentage.toStringAsFixed(1)}%)',
+                        textAlign: TextAlign.right,
+                        style: TextStyle(fontSize: 12, color: theme.textSecondaryColor)),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }

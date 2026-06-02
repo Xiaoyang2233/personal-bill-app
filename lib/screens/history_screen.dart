@@ -18,7 +18,7 @@ class HistoryScreen extends StatefulWidget {
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+class _HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveClientMixin {
   String _filterType = 'all';
   String _dateRange = 'week';
   String _filterCategory = 'all';
@@ -26,6 +26,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   final _searchController = TextEditingController();
   final _categoryService = CategoryService();
   DateTime? _selectedDate;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void dispose() {
@@ -81,6 +84,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = context.watch<ThemeProvider>();
     final billProvider = context.watch<BillProvider>();
     final topSafe = MediaQuery.of(context).padding.top;

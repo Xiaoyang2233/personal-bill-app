@@ -48,15 +48,17 @@ class TrendLineChart extends StatelessWidget {
       return dateStr;
     }
 
-    return GlassContainer(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
+    return RepaintBoundary(
+      child: GlassContainer(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
           Text('近7天收支趋势', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.textColor)),
           const SizedBox(height: 8),
           SizedBox(
             height: 200,
             child: LineChart(
+              duration: Duration.zero,
               LineChartData(
                 minX: 0,
                 maxX: 6,
@@ -132,6 +134,7 @@ class TrendLineChart extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 

@@ -17,7 +17,9 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   static const presetColors = [
     '#F5F7FA', '#FFF8E1', '#E8F5E9', '#E3F2FD',
     '#FCE4EC', '#F3E5F5', '#EFEBE9', '#ECEFF1',
@@ -26,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = context.watch<ThemeProvider>();
     final topSafe = MediaQuery.of(context).padding.top;
 
@@ -168,7 +171,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('版本', style: TextStyle(fontSize: 14, color: theme.textSecondaryColor)),
-                  Text('1.1.4', style: TextStyle(fontSize: 14, color: theme.textColor)),
+                  Text('1.1.5', style: TextStyle(fontSize: 14, color: theme.textColor)),
                 ],
               ),
               const SizedBox(height: 4),

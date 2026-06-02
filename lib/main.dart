@@ -41,12 +41,6 @@ class FinanceApp extends StatelessWidget {
               brightness: Brightness.light,
               scaffoldBackgroundColor: Colors.transparent,
               colorScheme: ColorScheme.fromSeed(seedColor: theme.primaryColor),
-              pageTransitionsTheme: const PageTransitionsTheme(
-                builders: {
-                  TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-                  TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-                },
-              ),
             ),
             darkTheme: ThemeData(
               brightness: Brightness.dark,
@@ -54,12 +48,6 @@ class FinanceApp extends StatelessWidget {
               colorScheme: ColorScheme.fromSeed(
                 seedColor: theme.primaryColor,
                 brightness: Brightness.dark,
-              ),
-              pageTransitionsTheme: const PageTransitionsTheme(
-                builders: {
-                  TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-                  TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-                },
               ),
             ),
             home: const AppShell(),
@@ -80,7 +68,7 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
 
-  final _screens = const [
+  static const _screens = [
     HomeScreen(),
     HistoryScreen(),
     SizedBox(),
@@ -177,7 +165,7 @@ class _AppShellState extends State<AppShell> {
 
   Widget _tabItem(String icon, String label, int index) {
     final selected = _currentIndex == index;
-    final theme = context.watch<ThemeProvider>();
+    final theme = context.read<ThemeProvider>();
 
     return GestureDetector(
       onTap: () => setState(() => _currentIndex = index),

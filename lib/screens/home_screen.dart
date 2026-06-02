@@ -21,13 +21,16 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin {
   String _chartMode = 'pie';
   bool _showLedgerPicker = false;
   bool _showAllBudgets = false;
   int? _loadedLedgerId;
   late int _displayYear;
   late int _displayMonth;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -110,6 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = context.watch<ThemeProvider>();
     final billProvider = context.watch<BillProvider>();
     final ledgerProvider = context.watch<LedgerProvider>();
@@ -254,30 +258,37 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 12),
 
+
           // Charts
           if (_chartMode == 'pie')
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: CategoryPieChart(
-                    data: billProvider.categoryBreakdown,
-                    title: '支出分类',
+            RepaintBoundary(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: CategoryPieChart(
+                      data: billProvider.categoryBreakdown,
+                      title: '支出分类',
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: CategoryPieChart(
-                    data: billProvider.incomeBreakdown,
-                    title: '收入分类',
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: CategoryPieChart(
+                      data: billProvider.incomeBreakdown,
+                      title: '收入分类',
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           if (_chartMode == 'bar')
-            CategoryBarChart(data: billProvider.categoryBreakdown),
+            RepaintBoundary(
+              child: CategoryBarChart(data: billProvider.categoryBreakdown),
+            ),
           if (_chartMode == 'line')
-            TrendLineChart(data: billProvider.dailyTotals),
+            RepaintBoundary(
+              child: TrendLineChart(data: billProvider.dailyTotals),
+            ),
         ],
       ),
     );

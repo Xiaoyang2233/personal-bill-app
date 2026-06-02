@@ -38,7 +38,7 @@ class DeveloperScreen extends StatelessWidget {
               ),
             ),
 
-            // Developer Card
+            // Developer Card - Xiaoyang
             GlassContainer(
               padding: const EdgeInsets.all(20),
               child: Row(
@@ -93,6 +93,61 @@ class DeveloperScreen extends StatelessWidget {
                           },
                           child: Text(
                             'GitHub: https://github.com/Xiaoyang2233/personal-bill-app',
+                            style: TextStyle(fontSize: 14, color: theme.primaryColor),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Developer Card - MiMo AI
+            GlassContainer(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  // Avatar placeholder
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withAlpha(30),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text('M', style: TextStyle(
+                        fontSize: 32, fontWeight: FontWeight.w700,
+                        color: theme.primaryColor)),
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  // Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('MiMo AI', style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w600, color: theme.textColor)),
+                        const SizedBox(height: 8),
+                        Text('开发工具', style: TextStyle(
+                          fontSize: 14, color: theme.textSecondaryColor)),
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: () {
+                            Clipboard.setData(const ClipboardData(
+                              text: 'https://platform.xiaomimimo.com'));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('MiMo平台地址已复制到剪贴板'),
+                                duration: Duration(seconds: 2)),
+                            );
+                          },
+                          child: Text(
+                            'GitHub: https://platform.xiaomimimo.com',
                             style: TextStyle(fontSize: 14, color: theme.primaryColor),
                             overflow: TextOverflow.ellipsis,
                           ),

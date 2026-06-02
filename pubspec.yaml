@@ -1,7 +1,7 @@
 name: finance_app
 description: 个人账单记账APP - 纯离线Flutter应用
 publish_to: 'none'
-version: 1.1.4+6
+version: 1.1.5+7
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
