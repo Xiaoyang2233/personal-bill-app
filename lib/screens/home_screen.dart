@@ -5,6 +5,7 @@ import '../providers/theme_provider.dart';
 import '../providers/bill_provider.dart';
 import '../providers/ledger_provider.dart';
 import '../providers/budget_provider.dart';
+import '../providers/pending_transaction_provider.dart';
 import '../utils/currency_utils.dart';
 import '../widgets/monthly_summary_card.dart';
 import '../widgets/category_pie_chart.dart';
@@ -13,6 +14,7 @@ import '../widgets/trend_line_chart.dart';
 import '../widgets/glass_container.dart';
 import '../utils/date_utils.dart';
 import 'budget_manage_screen.dart';
+import 'pending_transactions_panel.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -125,11 +127,13 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     final monthName = getMonthName(_displayMonth);
     final hasAlerts = budgetProvider.alerts.any((a) => a.exceeded || a.nearLimit);
 
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: ListView(
-        padding: EdgeInsets.only(top: topSafe + 8, left: 16, right: 16, bottom: 80),
-        children: [
+    return Stack(
+      children: [
+        RefreshIndicator(
+          onRefresh: _loadData,
+          child: ListView(
+            padding: EdgeInsets.only(top: topSafe + 8, left: 16, right: 16, bottom: 80),
+            children: [
           // Ledger Switcher
           GlassContainer(
             margin: const EdgeInsets.only(bottom: 10, top: 4),
@@ -291,6 +295,39 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
             ),
         ],
       ),
+        ),
+        // Pending transactions badge
+        Consumer<PendingTransactionProvider>(
+          builder: (context, pendingProvider, _) {
+            if (pendingProvider.pendingCount <= 0) return const SizedBox.shrink();
+            return Positioned(
+              right: 16,
+              top: topSafe + 8,
+              child: GestureDetector(
+                onTap: pendingProvider.togglePanel,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: theme.dangerColor,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.dangerColor.withAlpha(80),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    '${pendingProvider.pendingCount}',
+                    style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        const PendingTransactionsPanel(),
+      ],
     );
   }
 

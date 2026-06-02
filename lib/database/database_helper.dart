@@ -20,9 +20,34 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 3,
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute("ALTER TABLE bills ADD COLUMN source TEXT DEFAULT ''");
+    }
+    if (oldVersion < 3) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS pending_transactions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          package_name TEXT NOT NULL,
+          source_name TEXT NOT NULL,
+          title TEXT DEFAULT '',
+          text TEXT DEFAULT '',
+          amount REAL NOT NULL,
+          type TEXT NOT NULL,
+          merchant TEXT,
+          suggested_category TEXT DEFAULT '其他',
+          status TEXT DEFAULT 'pending',
+          created_at TEXT DEFAULT (datetime('now','localtime')),
+          updated_at TEXT DEFAULT (datetime('now','localtime'))
+        )
+      ''');
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -66,6 +91,23 @@ class DatabaseHelper {
       CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS pending_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        package_name TEXT NOT NULL,
+        source_name TEXT NOT NULL,
+        title TEXT DEFAULT '',
+        text TEXT DEFAULT '',
+        amount REAL NOT NULL,
+        type TEXT NOT NULL,
+        merchant TEXT,
+        suggested_category TEXT DEFAULT '其他',
+        status TEXT DEFAULT 'pending',
+        created_at TEXT DEFAULT (datetime('now','localtime')),
+        updated_at TEXT DEFAULT (datetime('now','localtime'))
       )
     ''');
 

@@ -6,6 +6,7 @@ class Bill {
   final String category;
   final String note;
   final String date; // YYYY-MM-DD
+  final String source; // '' for manual, 'com.tencent.mm' etc. for auto-detected
   final String? createdAt;
   final String? updatedAt;
 
@@ -17,6 +18,7 @@ class Bill {
     required this.category,
     this.note = '',
     required this.date,
+    this.source = '',
     this.createdAt,
     this.updatedAt,
   });
@@ -30,6 +32,7 @@ class Bill {
       'category': category,
       'note': note,
       'date': date,
+      'source': source,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };
@@ -44,6 +47,7 @@ class Bill {
       category: map['category'] as String,
       note: (map['note'] as String?) ?? '',
       date: map['date'] as String,
+      source: (map['source'] as String?) ?? '',
       createdAt: map['created_at'] as String?,
       updatedAt: map['updated_at'] as String?,
     );
